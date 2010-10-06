@@ -1,0 +1,141 @@
+cmake_minimum_required(VERSION 2.6)
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+
+set(CMAKE_BUILD_TYPE Release CACHE STRING
+	"Build configuration (Debug, Release, RelWithDebInfo, MinSizeRel)")
+
+project(iowolfet C ASM)
+
+set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
+set(CMAKE_ASM_COMPILE_OBJECT ${CMAKE_C_COMPILE_OBJECT})
+
+# Get the architecture
+if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "i686" OR "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "i386")
+	set(ARCH "x86")
+elseif("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64" OR "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "sparc" OR "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "powerpc")
+	set(ARCH ${CMAKE_SYSTEM_PROCESSOR})
+else()
+	set(ARCH "none")
+endif()
+
+# Get the platform
+set(CONSOLE "tty")
+if(WIN32)
+	set(PLATFORM "win32")
+	set(CONSOLE "win32")
+elseif(UNIX)
+	set(PLATFORM "unix")
+elseif(APPLE)
+	set(PLATFORM "osx")
+endif()
+
+# Options
+option(BUILD_SERVER
+	"Build the dedicated server executable" ON)
+option(BUILD_CLIENT
+	"Build the client executable" ON)
+option(USE_CURL
+	"Enable auto-download support using Curl (client only)" ON)
+
+if(NOT BUILD_SERVER AND NOT BUILD_CLIENT)
+	message(FATAL_ERROR
+		"Nothing to build")
+endif()
+
+# Sources
+set(OS_SRC
+	"src/sys/sys_main.c"
+	"src/sys/con_log.c"
+	"src/sys/sys_${PLATFORM}.c"
+	"src/sys/con_${CONSOLE}.c"
+)
+
+file(GLOB_RECURSE SHARED_SRC
+    "src/shared/*.c")
+
+file(GLOB_RECURSE BASE_SRC
+    "src/qcommon/*.c"
+    "src/server/*.c"
+    "src/botlib/*.c")
+
+file(GLOB_RECURSE SERVER_SRC
+    "src/null/*.c")
+
+file(GLOB_RECURSE CLIENT_SRC
+    "src/sdl/*.c"
+    "src/renderer/*.c"
+    "src/client/*.c")
+
+# Load packages, set definitions
+find_package(ZLIB REQUIRED)
+add_definitions(-DPRODUCT_VERSION="2.60e" -DBOTLIB)
+
+if (WIN32)
+	add_definitions(-DWINVER=0x501)
+	set(OS_LIBRARIES ws2_32 psapi winmm)
+elseif(UNIX)
+	set(OS_LIBRARIES dl m)
+endif()
+
+if(BUILD_CLIENT)
+	find_package(SDL REQUIRED)
+	find_package(OpenGL REQUIRED)
+	find_package(JPEG REQUIRED)
+
+	if(USE_OPENAL_DLOPEN)
+		add_definitions(-DUSE_OPENAL -DUSE_OPENAL_DLOPEN)
+
+	elseif(USE_OPENAL)
+		add_definitions(-DUSE_OPENAL)
+		find_package(OpenAL REQUIRED)
+	endif()
+
+	if(USE_CURL_DLOPEN)
+		add_definitions(-DUSE_CURL -DUSE_CURL_DLOPEN)
+	elseif(USE_CURL)
+		add_definitions(-DUSE_CURL)
+		find_package(CURL REQUIRED)
+	endif()
+endif()
+
+# Targets
+
+if(BUILD_SERVER)
+	add_executable(etded ${OS_SRC} ${BASE_SRC} ${SHARED_SRC} ${SERVER_SRC})
+	include_directories(
+		${ZLIB_INCLUDE_DIRS}
+		${CURL_INCLUDE_DIRS})
+	target_link_libraries(etded
+		${ZLIB_LIBRARIES}
+		${CURL_LIBRARIES}
+		${OS_LIBRARIES})
+	set_target_properties(etded
+		PROPERTIES COMPILE_DEFINITIONS "DEDICATED")
+endif()
+
+if(BUILD_CLIENT)
+	add_executable(et ${OS_SRC} ${BASE_SRC} ${SHARED_SRC} ${CLIENT_SRC})
+	include_directories(
+		${ZLIB_INCLUDE_DIRS}
+		${SDL_INCLUDE_DIR}
+		${OPENGL_INCLUDE_DIR}
+		${JPEG_INCLUDE_DIR}
+		${OPENAL_INCLUDE_DIR}
+		${CURL_INCLUDE_DIRS})
+	target_link_libraries(et
+		${ZLIB_LIBRARIES}
+		${SDL_LIBRARY}
+		${OPENGL_gl_LIBRARY}
+		${JPEG_LIBRARIES}
+		${OPENAL_LIBRARY}
+		${CURL_LIBRARIES}
+		${OS_LIBRARIES})
+endif()
+
+#set_source_files_properties(
+#	src/asm/snd_mixa.s
+#	src/asm/ftola.s
+#	src/asm/matha.s
+#	src/asm/snapvectora.s
+#	PROPERTIES
+#	COMPILE_FLAGS "-x assembler-with-cpp")

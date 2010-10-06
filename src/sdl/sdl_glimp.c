@@ -26,18 +26,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#ifdef USE_LOCAL_HEADERS
-#	include "SDL.h"
-#else
-#	include <SDL.h>
-#endif
+#include <SDL.h>
 
 #ifdef SMP
-#	ifdef USE_LOCAL_HEADERS
-#		include "SDL_thread.h"
-#	else
-#		include <SDL_thread.h>
-#	endif
+#	include <SDL_thread.h>
 #endif
 
 #include <stdarg.h>

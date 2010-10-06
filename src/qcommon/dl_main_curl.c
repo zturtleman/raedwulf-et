@@ -38,7 +38,7 @@ If you have questions concerning this license or the applicable additional terms
   #include <curl/curl.h>
 #endif
 
-#include "../game/q_shared.h"
+#include "../shared/q_shared.h"
 #include "qcommon.h"
 #include "dl_public.h"
 

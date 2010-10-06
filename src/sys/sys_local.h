@@ -26,7 +26,7 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "../game/q_shared.h"
+#include "../shared/q_shared.h"
 #include "../qcommon/qcommon.h"
 
 // Require a minimum version of SDL

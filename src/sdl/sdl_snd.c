@@ -29,13 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 #include <stdlib.h>
 #include <stdio.h>
 
-#ifdef USE_LOCAL_HEADERS
-#	include "SDL.h"
-#else
-#	include <SDL.h>
-#endif
+#include <SDL.h>
 
-#include "../game/q_shared.h"
+#include "../shared/q_shared.h"
 #include "../client/snd_local.h"
 
 qboolean snd_inited = qfalse;

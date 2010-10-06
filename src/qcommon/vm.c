@@ -486,85 +486,9 @@ vm_t *VM_Create( const char *module, intptr_t ( *systemCalls )(intptr_t *),
 		if ( vm->dllHandle ) {
 			return vm;
 		}
-		return NULL;
 	}
-
-	// load the image
-	Com_sprintf( filename, sizeof( filename ), "vm/%s.qvm", vm->name );
-	Com_Printf( "Loading vm file %s.\n", filename );
-	length = FS_ReadFile( filename, (void **)&header );
-	if ( !header ) {
-		Com_Printf( "Failed.\n" );
-		VM_Free( vm );
-		return NULL;
-	}
-
-	// byte swap the header
-	for ( i = 0 ; i < sizeof( *header ) / 4 ; i++ ) {
-		( (int *)header )[i] = LittleLong( ( (int *)header )[i] );
-	}
-
-	// validate
-	if ( header->vmMagic != VM_MAGIC
-		 || header->bssLength < 0
-		 || header->dataLength < 0
-		 || header->litLength < 0
-		 || header->codeLength <= 0 ) {
-		VM_Free( vm );
-		Com_Error( ERR_FATAL, "%s has bad header", filename );
-	}
-
-	// round up to next power of 2 so all data operations can
-	// be mask protected
-	dataLength = header->dataLength + header->litLength + header->bssLength;
-	for ( i = 0 ; dataLength > ( 1 << i ) ; i++ ) {
-	}
-	dataLength = 1 << i;
-
-	// allocate zero filled space for initialized and uninitialized data
-	vm->dataBase = Hunk_Alloc( dataLength, h_high );
-	vm->dataMask = dataLength - 1;
-
-	// copy the intialized data
-	Com_Memcpy( vm->dataBase, (byte *)header + header->dataOffset, header->dataLength + header->litLength );
-
-	// byte swap the longs
-	for ( i = 0 ; i < header->dataLength ; i += 4 ) {
-		*( int * )( vm->dataBase + i ) = LittleLong( *( int * )( vm->dataBase + i ) );
-	}
-
-	// allocate space for the jump targets, which will be filled in by the compile/prep functions
-	vm->instructionPointersLength = header->instructionCount * 4;
-	vm->instructionPointers = Hunk_Alloc( vm->instructionPointersLength, h_high );
-
-	// copy or compile the instructions
-	vm->codeLength = header->codeLength;
-
-#ifdef NO_VM_COMPILED
-	if(interpret >= VMI_COMPILED) {
-		Com_Printf("Architecture doesn't have a bytecode compiler, using interpreter\n");
-		interpret = VMI_BYTECODE;
-	}
-#else
-	if ( interpret >= VMI_COMPILED ) {
-		vm->compiled = qtrue;
-		VM_Compile( vm, header );
-	}
-#endif
-
-	// free the original file
-	FS_FreeFile( header );
-
-	// load the map file
-	VM_LoadSymbols( vm );
-
-	// the stack is implicitly at the end of the image
-	vm->programStack = vm->dataMask + 1;
-	vm->stackBottom = vm->programStack - STACK_SIZE;
-
-	Com_Printf( "%s loaded in %d bytes on the hunk\n", module, remaining - Hunk_MemoryRemaining() );
-
-	return vm;
+	
+	return NULL;
 }
 
 /*
@@ -698,37 +622,8 @@ intptr_t QDECL VM_Call( vm_t *vm, int callnum, ... ) {
 							args[4],  args[5],  args[6], args[7],
 							args[8],  args[9], args[10], args[11],
 							args[12], args[13], args[14], args[15] );
-	} else {
-#if id386 || idsparc // i386/sparc calling convention doesn't need conversion
-#ifndef NO_VM_COMPILED
-		if ( vm->compiled ) {
-			r = VM_CallCompiled( vm, &callnum );
-		} else
-#endif
-			r = VM_CallInterpreted( vm, &callnum );
-#else
-		struct {
-			int callnum;
-			int args[16];
-		} a;
-		va_list ap;
-
-		a.callnum = callnum;
-		va_start(ap, callnum);
-		for (i = 0; i < sizeof (a.args) / sizeof (a.args[0]); i++) {
-			a.args[i] = va_arg(ap, int);
-		}
-		va_end(ap);
-#ifndef NO_VM_COMPILED
-		if ( vm->compiled )
-			r = VM_CallCompiled( vm, &a.callnum );
-		else
-#endif
-			r = VM_CallInterpreted( vm, &a.callnum );
-
-#endif
 	}
-
+	
 	if ( oldVM != NULL ) { // bk001220 - assert(currentVM!=NULL) for oldVM==NULL
 		currentVM = oldVM;
 	}
@@ -849,15 +744,3 @@ void VM_LogSyscalls( int *args ) {
 	fprintf( f, "%i: %i (%i) = %i %i %i %i\n", callnum, args - (int *)currentVM->dataBase,
 			 args[0], args[1], args[2], args[3], args[4] );
 }
-
-#if defined( __MACOS__ )
-#define DLL_ONLY    //DAJ
-#endif
-
-#ifdef DLL_ONLY // bk010215 - for DLL_ONLY dedicated servers/builds w/o VM
-int VM_CallCompiled( vm_t *vm, int *args ) {
-	return( 0 );
-}
-
-void VM_Compile( vm_t *vm, vmHeader_t *header ) {}
-#endif // DLL_ONLY
