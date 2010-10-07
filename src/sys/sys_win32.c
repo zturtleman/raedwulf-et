@@ -47,14 +47,12 @@ If you have questions concerning this license or the applicable additional terms
 // Used to determine where to store user-specific files
 static char homePath[ MAX_OSPATH ] = { 0 };
 
-#ifdef __WIN64__
 void Sys_SnapVector( float *v )
 {
         v[0] = rint(v[0]);
         v[1] = rint(v[1]);
         v[2] = rint(v[2]);
 }
-#endif
 
 /*
 ================
@@ -135,34 +133,6 @@ int Sys_Milliseconds (void)
 
 	return sys_curtime;
 }
-
-#ifndef __GNUC__ //see snapvectora.s
-/*
-================
-Sys_SnapVector
-================
-*/
-void Sys_SnapVector( float *v )
-{
-	int i;
-	float f;
-
-	f = *v;
-	__asm	fld		f;
-	__asm	fistp	i;
-	*v = i;
-	v++;
-	f = *v;
-	__asm	fld		f;
-	__asm	fistp	i;
-	*v = i;
-	v++;
-	f = *v;
-	__asm	fld		f;
-	__asm	fistp	i;
-	*v = i;
-}
-#endif
 
 /*
 ================

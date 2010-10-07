@@ -34,6 +34,8 @@ option(BUILD_SERVER
 	"Build the dedicated server executable" ON)
 option(BUILD_CLIENT
 	"Build the client executable" ON)
+option(BUILD_MOD
+	"Build the mod libraries" ON)
 option(USE_CURL
 	"Enable auto-download support using Curl (client only)" ON)
 
@@ -51,20 +53,30 @@ set(OS_SRC
 )
 
 file(GLOB_RECURSE SHARED_SRC
-    "src/shared/*.c")
+	"src/shared/*.c")
 
 file(GLOB_RECURSE BASE_SRC
-    "src/qcommon/*.c"
-    "src/server/*.c"
-    "src/botlib/*.c")
+	"src/qcommon/*.c"
+	"src/server/*.c"
+	"src/botlib/*.c")
 
 file(GLOB_RECURSE SERVER_SRC
-    "src/null/*.c")
+	"src/null/*.c")
 
 file(GLOB_RECURSE CLIENT_SRC
-    "src/sdl/*.c"
-    "src/renderer/*.c"
-    "src/client/*.c")
+	"src/sdl/*.c"
+	"src/renderer/*.c"
+	"src/client/*.c")
+
+file(GLOB_RECURSE GAME_SRC
+	"src/game/*.c")
+
+file(GLOB_RECURSE CGAME_SRC
+	"src/game/bg_*.c"
+	"src/cgame/*.c")
+
+file(GLOB_RECURSE UI_SRC
+	"src/ui/*.c")
 
 # Load packages, set definitions
 find_package(ZLIB REQUIRED)
@@ -98,23 +110,21 @@ if(BUILD_CLIENT)
 	endif()
 endif()
 
-# Targets
-
 if(BUILD_SERVER)
-	add_executable(etded ${OS_SRC} ${BASE_SRC} ${SHARED_SRC} ${SERVER_SRC})
+	add_executable(etded.${ARCH} ${OS_SRC} ${BASE_SRC} ${SHARED_SRC} ${SERVER_SRC})
 	include_directories(
 		${ZLIB_INCLUDE_DIRS}
 		${CURL_INCLUDE_DIRS})
-	target_link_libraries(etded
+	target_link_libraries(etded.${ARCH}
 		${ZLIB_LIBRARIES}
 		${CURL_LIBRARIES}
 		${OS_LIBRARIES})
-	set_target_properties(etded
+	set_target_properties(etded.${ARCH}
 		PROPERTIES COMPILE_DEFINITIONS "DEDICATED")
 endif()
 
 if(BUILD_CLIENT)
-	add_executable(et ${OS_SRC} ${BASE_SRC} ${SHARED_SRC} ${CLIENT_SRC})
+	add_executable(et.${ARCH} ${OS_SRC} ${BASE_SRC} ${SHARED_SRC} ${CLIENT_SRC})
 	include_directories(
 		${ZLIB_INCLUDE_DIRS}
 		${SDL_INCLUDE_DIR}
@@ -122,7 +132,7 @@ if(BUILD_CLIENT)
 		${JPEG_INCLUDE_DIR}
 		${OPENAL_INCLUDE_DIR}
 		${CURL_INCLUDE_DIRS})
-	target_link_libraries(et
+	target_link_libraries(et.${ARCH}
 		${ZLIB_LIBRARIES}
 		${SDL_LIBRARY}
 		${OPENGL_gl_LIBRARY}
@@ -130,6 +140,18 @@ if(BUILD_CLIENT)
 		${OPENAL_LIBRARY}
 		${CURL_LIBRARIES}
 		${OS_LIBRARIES})
+endif()
+
+if(BUILD_MOD)
+	add_library(qagame.mp.${ARCH} ${SHARED_SRC} ${GAME_SRC})
+	set_target_properties(qagame.mp.${ARCH}
+		PROPERTIES COMPILE_DEFINITIONS "GAMEDLL")
+	add_library(cgame.mp.${ARCH} ${SHARED_SRC} ${CGAME_SRC})
+	set_target_properties(cgame.mp.${ARCH}
+		PROPERTIES COMPILE_DEFINITIONS "CGAMEDLL")
+	add_library(ui.mp.${ARCH} ${SHARED_SRC} ${UI_SRC})
+	set_target_properties(ui.mp.${ARCH}
+		PROPERTIES COMPILE_DEFINITIONS "UIDLL")
 endif()
 
 #set_source_files_properties(

@@ -32,7 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "../shared/q_shared.h"
 #include "../shared/tr_types.h"
-#include "keycodes.h"
+#include "../shared/keycodes.h"
 
 #include "../../etmain/ui/menudef.h"
 

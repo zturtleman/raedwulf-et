@@ -145,7 +145,6 @@ int Sys_Milliseconds (void)
 	return curtime;
 }
 
-#if !id386
 /*
 ==================
 fastftol
@@ -167,8 +166,6 @@ void Sys_SnapVector( float *v )
 	v[1] = rint(v[1]);
 	v[2] = rint(v[2]);
 }
-#endif
-
 
 /*
 ==================
