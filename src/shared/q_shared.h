@@ -159,7 +159,7 @@ typedef int intptr_t;
 #endif
 
 
-#include "../qcommon/q_platform.h"
+#include "q_platform.h"
 
 #ifdef __GNUC__
 #define _attribute( x ) __attribute__( x )

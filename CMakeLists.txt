@@ -6,6 +6,7 @@ set(CMAKE_BUILD_TYPE Release CACHE STRING
 
 project(iowolfet C ASM)
 
+set(CMAKE_C_FLAGS_RELEASE -O2 -DNDEBUG)
 set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
 set(CMAKE_ASM_COMPILE_OBJECT ${CMAKE_C_COMPILE_OBJECT})
 
@@ -46,37 +47,37 @@ endif()
 
 # Sources
 set(OS_SRC
-	"src/sys/sys_main.c"
-	"src/sys/con_log.c"
-	"src/sys/sys_${PLATFORM}.c"
-	"src/sys/con_${CONSOLE}.c"
+	"src/engine/sys/sys_main.c"
+	"src/engine/sys/con_log.c"
+	"src/engine/sys/sys_${PLATFORM}.c"
+	"src/engine/sys/con_${CONSOLE}.c"
 )
 
 file(GLOB_RECURSE SHARED_SRC
 	"src/shared/*.c")
 
 file(GLOB_RECURSE BASE_SRC
-	"src/qcommon/*.c"
-	"src/server/*.c"
-	"src/botlib/*.c")
+	"src/engine/qcommon/*.c"
+	"src/engine/server/*.c"
+	"src/engine/botlib/*.c")
 
 file(GLOB_RECURSE SERVER_SRC
-	"src/null/*.c")
+	"src/engine/null/*.c")
 
 file(GLOB_RECURSE CLIENT_SRC
-	"src/sdl/*.c"
-	"src/renderer/*.c"
-	"src/client/*.c")
+	"src/engine/sdl/*.c"
+	"src/engine/renderer/*.c"
+	"src/engine/client/*.c")
 
 file(GLOB_RECURSE GAME_SRC
-	"src/game/*.c")
+	"etmain/src/game/*.c")
 
 file(GLOB_RECURSE CGAME_SRC
-	"src/game/bg_*.c"
-	"src/cgame/*.c")
+	"etmain/src/game/bg_*.c"
+	"etmain/src/cgame/*.c")
 
 file(GLOB_RECURSE UI_SRC
-	"src/ui/*.c")
+	"etmain/src/ui/*.c")
 
 # Load packages, set definitions
 find_package(ZLIB REQUIRED)
@@ -101,10 +102,8 @@ if(BUILD_CLIENT)
 		add_definitions(-DUSE_OPENAL)
 		find_package(OpenAL REQUIRED)
 	endif()
-
-	if(USE_CURL_DLOPEN)
-		add_definitions(-DUSE_CURL -DUSE_CURL_DLOPEN)
-	elseif(USE_CURL)
+	
+	if(USE_CURL)
 		add_definitions(-DUSE_CURL)
 		find_package(CURL REQUIRED)
 	endif()
@@ -143,15 +142,21 @@ if(BUILD_CLIENT)
 endif()
 
 if(BUILD_MOD)
-	add_library(qagame.mp.${ARCH} ${SHARED_SRC} ${GAME_SRC})
+	add_library(qagame.mp.${ARCH} SHARED ${SHARED_SRC} ${GAME_SRC})
 	set_target_properties(qagame.mp.${ARCH}
-		PROPERTIES COMPILE_DEFINITIONS "GAMEDLL")
-	add_library(cgame.mp.${ARCH} ${SHARED_SRC} ${CGAME_SRC})
+		PROPERTIES COMPILE_DEFINITIONS "GAMEDLL"
+		           PREFIX ""
+		           LIBRARY_OUTPUT_DIRECTORY "etmain")
+	add_library(cgame.mp.${ARCH} SHARED ${SHARED_SRC} ${CGAME_SRC})
 	set_target_properties(cgame.mp.${ARCH}
-		PROPERTIES COMPILE_DEFINITIONS "CGAMEDLL")
-	add_library(ui.mp.${ARCH} ${SHARED_SRC} ${UI_SRC})
+		PROPERTIES COMPILE_DEFINITIONS "CGAMEDLL"
+		           PREFIX ""
+		           LIBRARY_OUTPUT_DIRECTORY "etmain")
+	add_library(ui.mp.${ARCH} SHARED ${SHARED_SRC} ${UI_SRC})
 	set_target_properties(ui.mp.${ARCH}
-		PROPERTIES COMPILE_DEFINITIONS "UIDLL")
+		PROPERTIES COMPILE_DEFINITIONS "UIDLL"
+		           PREFIX ""
+		           LIBRARY_OUTPUT_DIRECTORY "etmain")
 endif()
 
 #set_source_files_properties(
