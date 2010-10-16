@@ -164,8 +164,8 @@ cvar_t  *r_lodCurveError;
 cvar_t  *r_fullscreen;
 cvar_t  *r_noborder;
 
-cvar_t  *r_customwidth;
-cvar_t  *r_customheight;
+cvar_t  *r_width;
+cvar_t  *r_height;
 cvar_t  *r_customaspect;
 
 cvar_t  *r_overBrightBits;
@@ -413,8 +413,8 @@ qboolean R_GetModeInfo( int *width, int *height, float *windowAspect, int mode )
 	}
 
 	if ( mode == -1 ) {
-		*width = r_customwidth->integer;
-		*height = r_customheight->integer;
+		*width = r_width->integer;
+		*height = r_height->integer;
 		*windowAspect = r_customaspect->value;
 		return qtrue;
 	}
@@ -967,8 +967,8 @@ void R_Register( void ) {
 	r_oldMode = ri.Cvar_Get( "r_oldMode", "", CVAR_ARCHIVE );                             // ydnar: previous "good" video mode
 	r_fullscreen = ri.Cvar_Get( "r_fullscreen", "1", CVAR_ARCHIVE | CVAR_LATCH );
 	r_noborder = ri.Cvar_Get( "r_noborder", "0", CVAR_ARCHIVE );
-	r_customwidth = ri.Cvar_Get( "r_customwidth", "1600", CVAR_ARCHIVE | CVAR_LATCH );
-	r_customheight = ri.Cvar_Get( "r_customheight", "1024", CVAR_ARCHIVE | CVAR_LATCH );
+	r_width = ri.Cvar_Get( "r_width", "1600", CVAR_ARCHIVE | CVAR_LATCH );
+	r_height = ri.Cvar_Get( "r_height", "1024", CVAR_ARCHIVE | CVAR_LATCH );
 	r_customaspect = ri.Cvar_Get( "r_customaspect", "1", CVAR_ARCHIVE | CVAR_LATCH );
 	r_simpleMipMaps = ri.Cvar_Get( "r_simpleMipMaps", "1", CVAR_ARCHIVE | CVAR_LATCH );
 	r_uiFullScreen = ri.Cvar_Get( "r_uifullscreen", "0", 0 );

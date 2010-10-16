@@ -37,10 +37,9 @@ If you have questions concerning this license or the applicable additional terms
 #include <ctype.h>
 #include <errno.h>
 
-#ifndef DEDICATED
-#	include <SDL.h>
-#	include <SDL_cpuinfo.h>
-#endif
+#include <GL/glfw3.h>
+
+#include "../../libs/cpuinfo/cpuinfo.h"
 
 #include "sys_local.h"
 #include "sys_loadlib.h"
@@ -193,8 +192,8 @@ static void Sys_Exit( int exitCode )
 {
 	CON_Shutdown( );
 
-#ifndef DEDICATED
-	SDL_Quit( );
+#if !DEDICATED && !BUILD_TTY_CLIENT
+	glfwTerminate( );
 #endif
 
 	if( exitCode < 2 )
@@ -224,17 +223,18 @@ Sys_GetProcessorFeatures
 cpuFeatures_t Sys_GetProcessorFeatures( void )
 {
 	cpuFeatures_t features = 0;
+	CPUINFO cpuinfo;
+	
+	GetCPUInfo( &cpuinfo, CI_FALSE );
 
-#ifndef DEDICATED
-	if( SDL_HasRDTSC( ) )    features |= CF_RDTSC;
-	if( SDL_HasMMX( ) )      features |= CF_MMX;
-	if( SDL_HasMMXExt( ) )   features |= CF_MMX_EXT;
-	if( SDL_Has3DNow( ) )    features |= CF_3DNOW;
-	if( SDL_Has3DNowExt( ) ) features |= CF_3DNOW_EXT;
-	if( SDL_HasSSE( ) )      features |= CF_SSE;
-	if( SDL_HasSSE2( ) )     features |= CF_SSE2;
-	if( SDL_HasAltiVec( ) )  features |= CF_ALTIVEC;
-#endif
+	if( HasCPUID( &cpuinfo ) )    features |= CF_RDTSC;
+	if( HasMMX( &cpuinfo ) )      features |= CF_MMX;
+	if( HasMMXExt( &cpuinfo ) )   features |= CF_MMX_EXT;
+	if( Has3DNow( &cpuinfo ) )    features |= CF_3DNOW;
+	if( Has3DNowExt( &cpuinfo ) ) features |= CF_3DNOW_EXT;
+	if( HasSSE( &cpuinfo ) )      features |= CF_SSE;
+	if( HasSSE2( &cpuinfo ) )     features |= CF_SSE2;
+	//if( HasAltiVec( &cpuinfo ) )  features |= CF_ALTIVEC;
 
 	return features;
 }
@@ -563,32 +563,9 @@ int main( int argc, char **argv )
 	int   i;
 	char  commandLine[ MAX_STRING_CHARS ] = { 0 };
 
-#ifndef DEDICATED
-	// SDL version check
-
-	// Compile time
-#	if !SDL_VERSION_ATLEAST(MINSDL_MAJOR,MINSDL_MINOR,MINSDL_PATCH)
-#		error A more recent version of SDL is required
+#if !DEDICATED && !BUILD_TTY_CLIENT
+	// TODO: glfw version check
 #	endif
-
-	// Run time
-	const SDL_version *ver = SDL_Linked_Version( );
-
-#define MINSDL_VERSION \
-	XSTRING(MINSDL_MAJOR) "." \
-	XSTRING(MINSDL_MINOR) "." \
-	XSTRING(MINSDL_PATCH)
-
-	if( SDL_VERSIONNUM( ver->major, ver->minor, ver->patch ) <
-			SDL_VERSIONNUM( MINSDL_MAJOR, MINSDL_MINOR, MINSDL_PATCH ) )
-	{
-		Sys_Dialog( DT_ERROR, va( "SDL version " MINSDL_VERSION " or greater is required, "
-			"but only version %d.%d.%d was found. You may be able to obtain a more recent copy "
-			"from http://www.libsdl.org/.", ver->major, ver->minor, ver->patch ), "SDL Library Too Old" );
-
-		Sys_Exit( 1 );
-	}
-#endif
 
 	Sys_PlatformInit( );
 

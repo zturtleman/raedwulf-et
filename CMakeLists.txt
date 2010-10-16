@@ -6,7 +6,7 @@ set(CMAKE_BUILD_TYPE Release CACHE STRING
 
 project(iowolfet C ASM)
 
-set(CMAKE_C_FLAGS_RELEASE -O2 -DNDEBUG)
+set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG")
 set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
 set(CMAKE_ASM_COMPILE_OBJECT ${CMAKE_C_COMPILE_OBJECT})
 
@@ -57,6 +57,7 @@ file(GLOB_RECURSE SHARED_SRC
 	"src/shared/*.c")
 
 file(GLOB_RECURSE BASE_SRC
+	"src/libs/cpuinfo/*.c"
 	"src/engine/qcommon/*.c"
 	"src/engine/server/*.c"
 	"src/engine/botlib/*.c")
@@ -65,7 +66,7 @@ file(GLOB_RECURSE SERVER_SRC
 	"src/engine/null/*.c")
 
 file(GLOB_RECURSE CLIENT_SRC
-	"src/engine/sdl/*.c"
+	"src/engine/glfw/*.c"
 	"src/engine/renderer/*.c"
 	"src/engine/client/*.c")
 
@@ -90,8 +91,26 @@ elseif(UNIX)
 	set(OS_LIBRARIES dl m)
 endif()
 
+# Build dependencies
+add_subdirectory("src/libs/glfw" "glfw")
+if (WIN32)
+	set(GLFW_LIBRARY_PATH "glfw/src/win32")
+elseif(UNIX AND NOT APPLE)
+	set(GLFW_LIBRARY_PATH "glfw/src/x11")
+elseif(UNIX AND APPLE)
+	set(GLFW_LIBRARY_PATH "glfw/src/cocoa")
+endif()
+find_library(GLFW_LIBRARIES
+	NAMES glfw
+	PATHS ${GLFW_LIBRARY_PATH})
+set(GLFW_INCLUDE_DIRS "src/libs/glfw/include")
+
+file(GLOB_RECURSE GLEW_SRC
+	"src/libs/glew/src/*.c")
+set(GLEW_INCLUDE_DIR
+	"src/libs/glew/include")
+
 if(BUILD_CLIENT)
-	find_package(SDL REQUIRED)
 	find_package(OpenGL REQUIRED)
 	find_package(JPEG REQUIRED)
 
@@ -123,22 +142,23 @@ if(BUILD_SERVER)
 endif()
 
 if(BUILD_CLIENT)
-	add_executable(et.${ARCH} ${OS_SRC} ${BASE_SRC} ${SHARED_SRC} ${CLIENT_SRC})
+	add_executable(et.${ARCH} ${OS_SRC} ${BASE_SRC} ${SHARED_SRC} ${GLEW_SRC} ${CLIENT_SRC})
 	include_directories(
+		${GLEW_INCLUDE_DIR}
 		${ZLIB_INCLUDE_DIRS}
-		${SDL_INCLUDE_DIR}
 		${OPENGL_INCLUDE_DIR}
 		${JPEG_INCLUDE_DIR}
 		${OPENAL_INCLUDE_DIR}
-		${CURL_INCLUDE_DIRS})
+		${CURL_INCLUDE_DIRS}
+		${GLFW_INCLUDE_DIRS})
 	target_link_libraries(et.${ARCH}
 		${ZLIB_LIBRARIES}
-		${SDL_LIBRARY}
 		${OPENGL_gl_LIBRARY}
 		${JPEG_LIBRARIES}
 		${OPENAL_LIBRARY}
 		${CURL_LIBRARIES}
-		${OS_LIBRARIES})
+		${OS_LIBRARIES}
+		${GLFW_LIBRARIES})
 endif()
 
 if(BUILD_MOD)
