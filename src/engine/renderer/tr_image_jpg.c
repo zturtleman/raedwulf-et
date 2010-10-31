@@ -106,13 +106,13 @@ void R_LoadJPG( const char *filename, unsigned char **pic, int *width, int *heig
    */
 
   /* Step 4: set parameters for decompression */
+  cinfo.dct_method = JDCT_FLOAT;
 
   /* In this example, we don't need to change any of the defaults set by
    * jpeg_read_header(), so we do nothing here.
    */
 
   /* Step 5: Start decompressor */
-
   (void) jpeg_start_decompress(&cinfo);
   /* We can ignore the return value since suspension is not possible
    * with the stdio data source.
@@ -182,7 +182,22 @@ void R_LoadJPG( const char *filename, unsigned char **pic, int *width, int *heig
 		buf[--dindex] = greyshade;
 	} while(sindex);
   }
-  else
+  else if(cinfo.output_components == 3) /* Convert RGB to RGBA */
+  {
+	int sindex = pixelcount * 3, dindex = memcount;
+	unsigned char r, g, b;
+	do
+	{
+		b = buf[--sindex];
+		g = buf[--sindex];
+		r = buf[--sindex];
+		buf[--dindex] = 255;
+		buf[--dindex] = b;
+		buf[--dindex] = g;
+		buf[--dindex] = r;
+	} while(sindex);
+  }
+  else /* Assume its already RGBA */
   {
 	// clear all the alphas to 255
 	int	i;
