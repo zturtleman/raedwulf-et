@@ -383,7 +383,7 @@ static void IN_ActivateMouse(void)
 
 	if(!mouseActive)
 	{
-		glfwDisable(glfwWindow, GLFW_MOUSE_CURSOR);
+		glfwEnable(glfwWindow, GLFW_MOUSE_CURSOR);
 	}
 
 	// in_nograb makes no sense in fullscreen mode
@@ -402,7 +402,7 @@ static void IN_ActivateMouse(void)
 			in_nograb->modified = qfalse;
 		}
 	}
-
+	
 	mouseActive = qtrue;
 }
 
@@ -581,20 +581,13 @@ static void IN_JoyMove(void)
 }
 
 /**
- * IN_Frame_GLFW
- */
-static void IN_Frame_GLFW(GLFWwindow window)
-{
-	IN_Frame();
-}
-
-/**
  * IN_Frame
  */
 void IN_Frame(void)
 {
 	qboolean loading;
-
+	
+	glfwPollEvents();
 	IN_JoyMove();
 
 	// If not DISCONNECTED (main menu) or ACTIVE (in game), we're loading
@@ -610,11 +603,13 @@ void IN_Frame(void)
 		// Loading in windowed mode
 		IN_DeactivateMouse();
 	}
+	/*
 	else if (!glfwGetWindowParam(glfwWindow, GLFW_ACTIVE))
 	{
 		// Window not got focus
 		IN_DeactivateMouse();
 	}
+	*/
 	else
 	{
 		IN_ActivateMouse();
@@ -626,7 +621,14 @@ static void IN_KeyCallback(GLFWwindow window, int key, int action)
 	keyNum_t q3key;
 	qboolean press = action == GLFW_PRESS;
 	if ((q3key = IN_TranslateGLFWToQ3Key(key, press)))
+	{
 		Com_QueueEvent(0, SE_KEY, q3key, press, 0, NULL);
+		// workaround backspace not a character
+		if (q3key == K_BACKSPACE && press)
+		{
+			Com_QueueEvent(0, SE_CHAR, 'h' - 'a' + 1, 0, 0, NULL);
+		}
+	}
 }
 
 static void IN_CharCallback(GLFWwindow window, int character)
@@ -670,19 +672,19 @@ static void IN_MousePosCallback(GLFWwindow window, int x, int y)
 	}
 }
 
-static void IN_MouseWheelCallback(GLFWwindow window, int pos)
+static void IN_ScrollCallback(GLFWwindow window, int x, int y)
 {
 	static int lastPos = 0;
 	unsigned char b;
-	if (pos > lastPos)
+	if (x > lastPos)
 	{
 		b = K_MWHEELUP;
 	}
-	else if (pos < lastPos)
+	else if (x < lastPos)
 	{
 		b = K_MWHEELDOWN;
 	}
-	lastPos = pos;
+	lastPos = x;
 }
 
 /**
@@ -693,12 +695,11 @@ void IN_Init(void)
 	Com_DPrintf("\n------- Input Initialization -------\n");
 
 	// glfw callback hooks
-	glfwSetWindowRefreshCallback(glfwWindow, IN_Frame_GLFW);
-	glfwSetKeyCallback(glfwWindow, IN_KeyCallback);
-	glfwSetCharCallback(glfwWindow, IN_CharCallback);
-	glfwSetMouseButtonCallback(glfwWindow, IN_MouseButtonCallback);
-	glfwSetMousePosCallback(glfwWindow, IN_MousePosCallback);
-	glfwSetMouseWheelCallback(glfwWindow, IN_MouseWheelCallback);
+	glfwSetKeyCallback(IN_KeyCallback);
+	glfwSetCharCallback(IN_CharCallback);
+	glfwSetMouseButtonCallback(IN_MouseButtonCallback);
+	glfwSetMousePosCallback(IN_MousePosCallback);
+	glfwSetScrollCallback(IN_ScrollCallback);
 	
 	in_keyboardDebug = Cvar_Get("in_keyboardDebug", "0", CVAR_ARCHIVE);
 

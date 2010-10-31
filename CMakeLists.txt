@@ -67,10 +67,12 @@ file(GLOB_RECURSE SERVER_SRC
 
 file(GLOB_RECURSE CLIENT_SRC
 	"src/engine/glfw/*.c"
+	"src/engine/sdl/sdl_snd.c"
 	"src/engine/renderer/*.c"
 	"src/engine/client/*.c")
 
 file(GLOB_RECURSE GAME_SRC
+	"etmain/src/botai/*.c"
 	"etmain/src/game/*.c")
 
 file(GLOB_RECURSE CGAME_SRC
@@ -91,26 +93,17 @@ elseif(UNIX)
 	set(OS_LIBRARIES dl m)
 endif()
 
-# Build dependencies
-add_subdirectory("src/libs/glfw" "glfw")
-if (WIN32)
-	set(GLFW_LIBRARY_PATH "glfw/src/win32")
-elseif(UNIX AND NOT APPLE)
-	set(GLFW_LIBRARY_PATH "glfw/src/x11")
-elseif(UNIX AND APPLE)
-	set(GLFW_LIBRARY_PATH "glfw/src/cocoa")
-endif()
-find_library(GLFW_LIBRARIES
-	NAMES glfw
-	PATHS ${GLFW_LIBRARY_PATH})
-set(GLFW_INCLUDE_DIRS "src/libs/glfw/include")
+# GLFW
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildGLFW.cmake)
 
+# GLEW
 file(GLOB_RECURSE GLEW_SRC
 	"src/libs/glew/src/*.c")
 set(GLEW_INCLUDE_DIR
 	"src/libs/glew/include")
 
 if(BUILD_CLIENT)
+	find_package(SDL REQUIRED)
 	find_package(OpenGL REQUIRED)
 	find_package(JPEG REQUIRED)
 
@@ -132,6 +125,7 @@ if(BUILD_SERVER)
 	add_executable(etded.${ARCH} ${OS_SRC} ${BASE_SRC} ${SHARED_SRC} ${SERVER_SRC})
 	include_directories(
 		${ZLIB_INCLUDE_DIRS}
+		${SDL_INCLUDE_DIR}
 		${CURL_INCLUDE_DIRS})
 	target_link_libraries(etded.${ARCH}
 		${ZLIB_LIBRARIES}
@@ -142,7 +136,7 @@ if(BUILD_SERVER)
 endif()
 
 if(BUILD_CLIENT)
-	add_executable(et.${ARCH} ${OS_SRC} ${BASE_SRC} ${SHARED_SRC} ${GLEW_SRC} ${CLIENT_SRC})
+	add_executable(et.${ARCH} ${OS_SRC} ${BASE_SRC} ${SHARED_SRC} ${GLEW_SRC} ${GLFW_SRC} ${CLIENT_SRC})
 	include_directories(
 		${GLEW_INCLUDE_DIR}
 		${ZLIB_INCLUDE_DIRS}
@@ -153,6 +147,7 @@ if(BUILD_CLIENT)
 		${GLFW_INCLUDE_DIRS})
 	target_link_libraries(et.${ARCH}
 		${ZLIB_LIBRARIES}
+		${SDL_LIBRARY}
 		${OPENGL_gl_LIBRARY}
 		${JPEG_LIBRARIES}
 		${OPENAL_LIBRARY}
@@ -164,7 +159,7 @@ endif()
 if(BUILD_MOD)
 	add_library(qagame.mp.${ARCH} SHARED ${SHARED_SRC} ${GAME_SRC})
 	set_target_properties(qagame.mp.${ARCH}
-		PROPERTIES COMPILE_DEFINITIONS "GAMEDLL"
+		PROPERTIES COMPILE_DEFINITIONS "GAMEDLL;NO_BOT_SUPPORT"
 		           PREFIX ""
 		           LIBRARY_OUTPUT_DIRECTORY "etmain")
 	add_library(cgame.mp.${ARCH} SHARED ${SHARED_SRC} ${CGAME_SRC})

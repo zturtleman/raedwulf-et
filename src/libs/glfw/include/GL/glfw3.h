@@ -154,6 +154,7 @@ extern "C" {
  * (which is not a nice solution for portable programs).
  */
 #if defined(__APPLE_CC__)
+ #define GL_GLEXT_LEGACY
  #include <OpenGL/gl.h>
  #ifndef GLFW_NO_GLU
   #include <OpenGL/glu.h>
@@ -361,6 +362,8 @@ extern "C" {
 #define GLFW_VERSION_UNAVAILABLE  0x00070007
 #define GLFW_PLATFORM_ERROR       0x00070008
 
+/* Gamma ramps */
+#define GLFW_GAMMA_RAMP_SIZE      256
 
 /*************************************************************************
  * Typedefs
@@ -378,6 +381,14 @@ typedef struct
     int blueBits;
     int greenBits;
 } GLFWvidmode;
+
+/* Gamma ramp */
+typedef struct
+{
+    unsigned short red[GLFW_GAMMA_RAMP_SIZE];
+    unsigned short green[GLFW_GAMMA_RAMP_SIZE];
+    unsigned short blue[GLFW_GAMMA_RAMP_SIZE];
+} GLFWgammaramp;
 
 /* Function pointer types */
 typedef void (* GLFWwindowsizefun)(GLFWwindow,int,int);
@@ -410,6 +421,11 @@ GLFWAPI const char* glfwErrorString(int error);
 GLFWAPI int  glfwGetVideoModes(GLFWvidmode* list, int maxcount);
 GLFWAPI void glfwGetDesktopMode(GLFWvidmode* mode);
 
+/* Gamma ramp functions */
+GLFWAPI void glfwSetGammaFormula(float gamma, float blacklevel, float gain);
+GLFWAPI void glfwGetGammaRamp(GLFWgammaramp* ramp);
+GLFWAPI void glfwSetGammaRamp(const GLFWgammaramp* ramp);
+
 /* Window handling */
 GLFWAPI GLFWwindow glfwOpenWindow(int width, int height, int mode, const char* title, GLFWwindow share);
 GLFWAPI void glfwOpenWindowHint(int target, int hint);
@@ -427,11 +443,11 @@ GLFWAPI void glfwRestoreWindow(GLFWwindow window);
 GLFWAPI int  glfwGetWindowParam(GLFWwindow window, int param);
 GLFWAPI void glfwSetWindowUserPointer(GLFWwindow window, void* pointer);
 GLFWAPI void* glfwGetWindowUserPointer(GLFWwindow window);
-GLFWAPI void glfwSetWindowSizeCallback(GLFWwindow window, GLFWwindowsizefun cbfun);
-GLFWAPI void glfwSetWindowCloseCallback(GLFWwindow window, GLFWwindowclosefun cbfun);
-GLFWAPI void glfwSetWindowRefreshCallback(GLFWwindow window, GLFWwindowrefreshfun cbfun);
-GLFWAPI void glfwSetWindowFocusCallback(GLFWwindow window, GLFWwindowfocusfun cbfun);
-GLFWAPI void glfwSetWindowIconifyCallback(GLFWwindow window, GLFWwindowiconifyfun cbfun);
+GLFWAPI void glfwSetWindowSizeCallback(GLFWwindowsizefun cbfun);
+GLFWAPI void glfwSetWindowCloseCallback(GLFWwindowclosefun cbfun);
+GLFWAPI void glfwSetWindowRefreshCallback(GLFWwindowrefreshfun cbfun);
+GLFWAPI void glfwSetWindowFocusCallback(GLFWwindowfocusfun cbfun);
+GLFWAPI void glfwSetWindowIconifyCallback(GLFWwindowiconifyfun cbfun);
 
 /* Event handling */
 GLFWAPI void glfwPollEvents(void);
@@ -443,11 +459,11 @@ GLFWAPI int  glfwGetMouseButton(GLFWwindow window, int button);
 GLFWAPI void glfwGetMousePos(GLFWwindow window, int* xpos, int* ypos);
 GLFWAPI void glfwSetMousePos(GLFWwindow window, int xpos, int ypos);
 GLFWAPI void glfwGetScrollOffset(GLFWwindow window, int* x, int* y);
-GLFWAPI void glfwSetKeyCallback(GLFWwindow window, GLFWkeyfun cbfun);
-GLFWAPI void glfwSetCharCallback(GLFWwindow window, GLFWcharfun cbfun);
-GLFWAPI void glfwSetMouseButtonCallback(GLFWwindow window, GLFWmousebuttonfun cbfun);
-GLFWAPI void glfwSetMousePosCallback(GLFWwindow window, GLFWmouseposfun cbfun);
-GLFWAPI void glfwSetScrollCallback(GLFWwindow window, GLFWscrollfun cbfun);
+GLFWAPI void glfwSetKeyCallback(GLFWkeyfun cbfun);
+GLFWAPI void glfwSetCharCallback(GLFWcharfun cbfun);
+GLFWAPI void glfwSetMouseButtonCallback(GLFWmousebuttonfun cbfun);
+GLFWAPI void glfwSetMousePosCallback(GLFWmouseposfun cbfun);
+GLFWAPI void glfwSetScrollCallback(GLFWscrollfun cbfun);
 
 /* Joystick input */
 GLFWAPI int glfwGetJoystickParam(int joy, int param);

@@ -1,5 +1,5 @@
 //========================================================================
-// Iconify/restore test program
+// Gamma correction test program
 // Copyright (c) Camilla Berglund <elmindreda@elmindreda.org>
 //
 // This software is provided 'as-is', without any express or implied
@@ -23,7 +23,7 @@
 //
 //========================================================================
 //
-// This program is used to test the iconify/restore functionality for
+// This program is used to test the gamma correction functionality for
 // both fullscreen and windowed mode windows
 //
 //========================================================================
@@ -35,28 +35,56 @@
 
 #include "getopt.h"
 
+static GLfloat ggamma = 1.0f;
+static GLfloat ggain = 1.0f;
+static GLfloat gblacklevel = 0.0f;
+
 static void usage(void)
 {
-    printf("Usage: iconify [-h] [-f]\n");
+    printf("Usage: gammatest [-h] [-f]\n");
 }
 
 static void key_callback(GLFWwindow window, int key, int action)
 {
-    printf("%0.2f Key %s\n",
-           glfwGetTime(),
-           action == GLFW_PRESS ? "pressed" : "released");
-
     if (action != GLFW_PRESS)
         return;
 
     switch (key)
     {
-        case GLFW_KEY_SPACE:
-            glfwIconifyWindow(window);
-            break;
         case GLFW_KEY_ESC:
             glfwCloseWindow(window);
             break;
+        case 'Q':
+            ggamma += 0.1f;
+            printf("Gamma: %f\n", ggamma);
+            glfwSetGammaFormula( ggamma, gblacklevel, ggain );
+            break;
+        case 'W':
+            ggamma -= 0.1f;
+            printf("Gamma: %f\n", ggamma);
+            glfwSetGammaFormula( ggamma, gblacklevel, ggain );
+            break;
+        case 'A':
+            ggain += 0.1f;
+            printf("Gain: %f\n", ggain);
+            glfwSetGammaFormula( ggamma, gblacklevel, ggain );
+            break;
+        case 'S':
+            ggain -= 0.1f;
+            printf("Gain: %f\n", ggain);
+            glfwSetGammaFormula( ggamma, gblacklevel, ggain );
+            break;
+        case 'Z':
+            gblacklevel += 0.1f;
+            printf("Black Level: %f\n", gblacklevel);
+            glfwSetGammaFormula( ggamma, gblacklevel, ggain );
+            break;
+        case 'X':
+            gblacklevel -= 0.1f;
+            printf("Black Level: %f\n", gblacklevel);
+            glfwSetGammaFormula( ggamma, gblacklevel, ggain );
+            break;
+
     }
 }
 
@@ -69,7 +97,6 @@ int main(int argc, char** argv)
 {
     int width, height, ch;
     int mode = GLFW_WINDOWED;
-    GLboolean active = -1, iconified = -1;
     GLFWwindow window;
 
     while ((ch = getopt(argc, argv, "fh")) != -1)
@@ -109,7 +136,7 @@ int main(int argc, char** argv)
         height = 0;
     }
 
-    window = glfwOpenWindow(width, height, mode, "Iconify", NULL);
+    window = glfwOpenWindow(width, height, mode, "Gamma Test", NULL);
     if (!window)
     {
         glfwTerminate();
@@ -117,6 +144,9 @@ int main(int argc, char** argv)
         fprintf(stderr, "Failed to open GLFW window: %s\n", glfwErrorString(glfwGetError()));
         exit(EXIT_FAILURE);
     }
+
+    printf("Gamma: %f\nGain: %f\nBlack Level: %f\n",
+           ggamma, ggain, gblacklevel);
 
     glfwSwapInterval(1);
     glfwSetKeyCallback(key_callback);
@@ -128,26 +158,14 @@ int main(int argc, char** argv)
     {
         int width, height;
 
-        if (iconified != glfwGetWindowParam(window, GLFW_ICONIFIED) ||
-            active != glfwGetWindowParam(window, GLFW_ACTIVE))
-        {
-            iconified = glfwGetWindowParam(window, GLFW_ICONIFIED);
-            active = glfwGetWindowParam(window, GLFW_ACTIVE);
-
-            printf("%0.2f %s %s\n",
-                   glfwGetTime(),
-                   iconified ? "Iconified" : "Restored",
-                   active ? "Active" : "Inactive");
-        }
-
         glfwGetWindowSize(window, &width, &height);
 
         glScissor(0, 0, width, height);
-        glClearColor(0, 0, 0, 0);
+        glClearColor(0.5f, 0.5f, 0.5f, 0);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glScissor(0, 0, 640, 480);
-        glClearColor(1, 1, 1, 0);
+        glClearColor(0.8f, 0.2f, 0.4f, 0);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glfwSwapBuffers();

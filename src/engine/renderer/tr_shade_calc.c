@@ -1091,9 +1091,9 @@ void RB_CalcEnvironmentTexCoords( float *st ) {
 	#ifdef DEBUG_ENVMAPPING
 	GL_Bind( tr.whiteImage );
 	GL_State( GLS_DEPTHMASK_TRUE );
-	qglLineWidth( 2 );
-	qglBegin( GL_LINES );
-	qglColor3f( 0.3, 0.4, 1 );
+	glLineWidth( 2 );
+	glBegin( GL_LINES );
+	glColor3f( 0.3, 0.4, 1 );
 	#endif
 
 
@@ -1123,14 +1123,14 @@ void RB_CalcEnvironmentTexCoords( float *st ) {
 		st[1] = 0.5 - reflectedTransformed[ 2 ] * 0.5;
 
 		#ifdef DEBUG_ENVMAPPING
-		qglVertex3f( v[ 0 ], v[ 1 ], v[ 2 ] );
-		qglVertex3f( v[ 0 ] + reflected[ 0 ] * 2, v[ 1 ] + reflected[ 1 ] * 2, v[ 2 ] + reflected[ 2 ] * 2 );
+		glVertex3f( v[ 0 ], v[ 1 ], v[ 2 ] );
+		glVertex3f( v[ 0 ] + reflected[ 0 ] * 2, v[ 1 ] + reflected[ 1 ] * 2, v[ 2 ] + reflected[ 2 ] * 2 );
 		#endif
 	}
 
 	#ifdef DEBUG_ENVMAPPING
-	qglEnd();
-	qglLineWidth( 1 );
+	glEnd();
+	glLineWidth( 1 );
 	#endif
 }
 

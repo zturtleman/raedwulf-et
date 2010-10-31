@@ -1197,11 +1197,11 @@ static void processSingleEvent(void)
                 window->X11.cursorPosY = event.xmotion.y;
                 window->X11.mouseMoved = GL_TRUE;
 
-                if (window->mousePosCallback)
+                if (_glfwLibrary.mousePosCallback)
                 {
-                    window->mousePosCallback(window,
-                                             window->mousePosX,
-                                             window->mousePosY);
+                    _glfwLibrary.mousePosCallback(window,
+                                                  window->mousePosX,
+                                                  window->mousePosY);
                 }
             }
             break;
@@ -1224,11 +1224,11 @@ static void processSingleEvent(void)
 
                 window->width = event.xconfigure.width;
                 window->height = event.xconfigure.height;
-                if (window->windowSizeCallback)
+                if (_glfwLibrary.windowSizeCallback)
                 {
-                    window->windowSizeCallback(window,
-                                               window->width,
-                                               window->height);
+                    _glfwLibrary.windowSizeCallback(window,
+                                                    window->width,
+                                                    window->height);
                 }
             }
 
@@ -1252,7 +1252,7 @@ static void processSingleEvent(void)
                 return;
             }
 
-            if ((Atom) event.xclient.data.l[ 0 ] == window->X11.wmDeleteWindow)
+            if ((Atom) event.xclient.data.l[0] == window->X11.wmDeleteWindow)
             {
                 // The window manager was asked to close the window, for example by
                 // the user pressing a 'close' window decoration button
@@ -1260,7 +1260,7 @@ static void processSingleEvent(void)
                 window->closeRequested = GL_TRUE;
             }
             else if (window->X11.wmPing != None &&
-                     (Atom) event.xclient.data.l[ 0 ] == window->X11.wmPing)
+                     (Atom) event.xclient.data.l[0] == window->X11.wmPing)
             {
                 // The window manager is pinging us to make sure we are still
                 // responding to events
@@ -1288,8 +1288,8 @@ static void processSingleEvent(void)
 
             window->iconified = GL_FALSE;
 
-            if (window->windowIconifyCallback)
-                window->windowIconifyCallback(window, window->iconified);
+            if (_glfwLibrary.windowIconifyCallback)
+                _glfwLibrary.windowIconifyCallback(window, window->iconified);
 
             break;
         }
@@ -1306,8 +1306,8 @@ static void processSingleEvent(void)
 
             window->iconified = GL_TRUE;
 
-            if (window->windowIconifyCallback)
-                window->windowIconifyCallback(window, window->iconified);
+            if (_glfwLibrary.windowIconifyCallback)
+                _glfwLibrary.windowIconifyCallback(window, window->iconified);
 
             break;
         }
@@ -1358,8 +1358,8 @@ static void processSingleEvent(void)
                 return;
             }
 
-            if (window->windowRefreshCallback)
-                window->windowRefreshCallback(window);
+            if (_glfwLibrary.windowRefreshCallback)
+                _glfwLibrary.windowRefreshCallback(window);
 
             break;
         }
@@ -1371,7 +1371,7 @@ static void processSingleEvent(void)
         default:
         {
 #if defined(_GLFW_HAS_XRANDR)
-            switch (event.type - _glfwLibrary.X11.XRandR.eventBase)
+            switch (event.type - _glfwLibrary.X11.RandR.eventBase)
             {
                 case RRScreenChangeNotify:
                 {
@@ -1380,7 +1380,7 @@ static void processSingleEvent(void)
                     break;
                 }
             }
-#endif
+#endif /*_GLFW_HAS_XRANDR*/
             break;
         }
     }
@@ -1438,13 +1438,14 @@ int _glfwPlatformOpenWindow(_GLFWwindow* window,
     {
 #if defined(_GLFW_HAS_XRANDR)
         // Request screen change notifications
-        if (_glfwLibrary.X11.XRandR.available)
+        if (_glfwLibrary.X11.RandR.available)
         {
             XRRSelectInput(_glfwLibrary.X11.display,
                            window->X11.handle,
                            RRScreenChangeNotifyMask);
         }
-#endif
+#endif /*_GLFW_HAS_XRANDR*/
+
         enterFullscreenMode(window);
     }
 
@@ -1670,11 +1671,12 @@ void _glfwPlatformRefreshWindowParams(void)
     GLXFBConfig* fbconfig;
 #if defined(_GLFW_HAS_XRANDR)
     XRRScreenConfiguration* sc;
-#elif defined(_GLFW_HAS_XF86VIDMODE)
+#endif /*_GLFW_HAS_XRANDR*/
+#if defined(_GLFW_HAS_XF86VIDMODE)
     XF86VidModeModeLine modeline;
     int dotclock;
     float pixels_per_second, pixels_per_frame;
-#endif
+#endif /*_GLFW_HAS_XF86VIDMODE*/
     _GLFWwindow* window = _glfwLibrary.currentWindow;
 
     int attribs[] = { GLX_FBCONFIG_ID, window->GLX.fbconfigID, None };
@@ -1733,24 +1735,25 @@ void _glfwPlatformRefreshWindowParams(void)
     window->refreshRate = 0;
 
     // Retrieve refresh rate if possible
-#if defined(_GLFW_HAS_XRANDR)
-    if (_glfwLibrary.X11.XRandR.available)
+    if (_glfwLibrary.X11.RandR.available)
     {
+#if defined(_GLFW_HAS_XRANDR)
         sc = XRRGetScreenInfo(_glfwLibrary.X11.display, _glfwLibrary.X11.root);
         window->refreshRate = XRRConfigCurrentRate(sc);
         XRRFreeScreenConfigInfo(sc);
+#endif /*_GLFW_HAS_XRANDR*/
     }
-#elif defined(_GLFW_HAS_XF86VIDMODE)
-    if (_glfwLibrary.X11.XF86VidMode.available)
+    else if (_glfwLibrary.X11.VidMode.available)
     {
+#if defined(_GLFW_HAS_XF86VIDMODE)
         // Use the XF86VidMode extension to get current video mode
         XF86VidModeGetModeLine(_glfwLibrary.X11.display, _glfwLibrary.X11.screen,
                                &dotclock, &modeline);
         pixels_per_second = 1000.0f * (float) dotclock;
         pixels_per_frame  = (float) modeline.htotal * modeline.vtotal;
         window->refreshRate = (int)(pixels_per_second/pixels_per_frame+0.5);
+#endif /*_GLFW_HAS_XF86VIDMODE*/
     }
-#endif
 
     XFree(fbconfig);
 }

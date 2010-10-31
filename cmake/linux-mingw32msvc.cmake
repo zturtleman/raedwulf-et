@@ -1,0 +1,1 @@
+../src/libs/glfw/CMake/linux-mingw32msvc.cmake

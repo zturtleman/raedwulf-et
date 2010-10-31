@@ -152,18 +152,6 @@ struct _GLFWwindow
 {
     struct _GLFWwindow* next;
 
-    // User callback functions
-    GLFWwindowsizefun    windowSizeCallback;
-    GLFWwindowclosefun   windowCloseCallback;
-    GLFWwindowrefreshfun windowRefreshCallback;
-    GLFWwindowfocusfun   windowFocusCallback;
-    GLFWwindowiconifyfun windowIconifyCallback;
-    GLFWmousebuttonfun   mouseButtonCallback;
-    GLFWmouseposfun      mousePosCallback;
-    GLFWscrollfun        scrollCallback;
-    GLFWkeyfun           keyCallback;
-    GLFWcharfun          charCallback;
-
     // Window settings and state
     GLboolean iconified;       // GL_TRUE if this window is iconified
     GLboolean closeRequested;  // GL_TRUE if this window should be closed
@@ -205,6 +193,7 @@ struct _GLFWwindow
     int       glForward, glDebug, glProfile;
     PFNGLGETSTRINGIPROC GetStringi;
 
+    // These are defined in the current port's platform.h
     _GLFW_PLATFORM_WINDOW_STATE;
     _GLFW_PLATFORM_CONTEXT_STATE;
 };
@@ -215,13 +204,29 @@ struct _GLFWwindow
 //------------------------------------------------------------------------
 struct _GLFWlibrary
 {
-    _GLFWhints   hints;
+    _GLFWhints    hints;
 
-    _GLFWwindow* windowListHead;
-    _GLFWwindow* currentWindow;
-    _GLFWwindow* activeWindow;
-    _GLFWwindow* cursorLockWindow;
+    _GLFWwindow*  windowListHead;
+    _GLFWwindow*  currentWindow;
+    _GLFWwindow*  activeWindow;
+    _GLFWwindow*  cursorLockWindow;
 
+    GLFWwindowsizefun    windowSizeCallback;
+    GLFWwindowclosefun   windowCloseCallback;
+    GLFWwindowrefreshfun windowRefreshCallback;
+    GLFWwindowfocusfun   windowFocusCallback;
+    GLFWwindowiconifyfun windowIconifyCallback;
+    GLFWmousebuttonfun   mouseButtonCallback;
+    GLFWmouseposfun      mousePosCallback;
+    GLFWscrollfun        scrollCallback;
+    GLFWkeyfun           keyCallback;
+    GLFWcharfun          charCallback;
+
+    GLFWgammaramp currentRamp;
+    GLFWgammaramp originalRamp;
+    int           originalRampSize;
+
+    // This is defined in the current port's platform.h
     _GLFW_PLATFORM_LIBRARY_STATE;
 };
 
@@ -256,6 +261,10 @@ void _glfwPlatformDisableSystemKeys(_GLFWwindow* window);
 // Fullscreen
 int  _glfwPlatformGetVideoModes(GLFWvidmode* list, int maxcount);
 void _glfwPlatformGetDesktopMode(GLFWvidmode* mode);
+
+// Gamma ramp
+void _glfwPlatformGetGammaRamp(GLFWgammaramp* ramp);
+void _glfwPlatformSetGammaRamp(const GLFWgammaramp* ramp);
 
 // Joystick
 int _glfwPlatformGetJoystickParam(int joy, int param);

@@ -52,10 +52,6 @@
  #error "GLX header version 1.3 or above is required"
 #endif
 
-#if defined(_GLFW_HAS_XF86VIDMODE) && defined(_GLFW_HAS_XRANDR)
- #error "Xf86VidMode and RandR extensions cannot both be enabled"
-#endif
-
 // With XFree86, we can use the XF86VidMode extension
 #if defined(_GLFW_HAS_XF86VIDMODE)
  #include <X11/extensions/xf86vmode.h>
@@ -70,10 +66,6 @@
  #include <dlfcn.h>
 #endif
 
-// Pointer length integer
-// One day, this will most likely move into glfw.h
-typedef intptr_t GLFWintptr;
-
 
 #ifndef GL_VERSION_3_0
 
@@ -87,10 +79,15 @@ typedef const GLubyte* (APIENTRY *PFNGLGETSTRINGIPROC)(GLenum, GLuint);
 #define _GLFW_PLATFORM_CONTEXT_STATE _GLFWcontextGLX GLX
 
 
+//========================================================================
+// GLFW platform specific types
+//========================================================================
 
-//========================================================================
-// Global variables (GLFW internals)
-//========================================================================
+//------------------------------------------------------------------------
+// Pointer length integer
+//------------------------------------------------------------------------
+typedef intptr_t GLFWintptr;
+
 
 //------------------------------------------------------------------------
 // Platform-specific OpenGL context structure
@@ -156,38 +153,41 @@ typedef struct _GLFWlibraryX11
     int             glxMajor, glxMinor;
 
     struct {
-        int         available;
+        GLboolean   available;
         int         eventBase;
         int         errorBase;
-    } XF86VidMode;
+    } VidMode;
 
     struct {
-        int         available;
+        GLboolean   available;
         int         eventBase;
         int         errorBase;
-    } XRandR;
+        int         majorVersion;
+        int         minorVersion;
+        GLboolean   gammaBroken;
+    } RandR;
 
     // Screensaver data
     struct {
-        int     changed;
-        int     timeout;
-        int     interval;
-        int     blanking;
-        int     exposure;
+        GLboolean   changed;
+        int         timeout;
+        int         interval;
+        int         blanking;
+        int         exposure;
     } saver;
 
     // Fullscreen data
     struct {
-        int     modeChanged;
+        GLboolean   modeChanged;
+#if defined(_GLFW_HAS_XRANDR)
+        SizeID      oldSizeID;
+        int         oldWidth;
+        int         oldHeight;
+        Rotation    oldRotation;
+#endif /*_GLFW_HAS_XRANDR*/
 #if defined(_GLFW_HAS_XF86VIDMODE)
         XF86VidModeModeInfo oldMode;
-#endif
-#if defined(_GLFW_HAS_XRANDR)
-        SizeID   oldSizeID;
-        int      oldWidth;
-        int      oldHeight;
-        Rotation oldRotation;
-#endif
+#endif /*_GLFW_HAS_XF86VIDMODE*/
     } FS;
 
     // Timer data
@@ -197,7 +197,7 @@ typedef struct _GLFWlibraryX11
     } timer;
 
 #if defined(_GLFW_DLOPEN_LIBGL)
-    void*       libGL;  // dlopen handle for libGL.so
+    void*           libGL;  // dlopen handle for libGL.so
 #endif
 } _GLFWlibraryX11;
 

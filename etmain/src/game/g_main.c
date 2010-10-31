@@ -217,7 +217,9 @@ vmCvar_t mod_url;
 vmCvar_t url;
 
 vmCvar_t g_letterbox;
+#ifndef NO_BOT_SUPPORT
 vmCvar_t bot_enable;
+#endif
 
 vmCvar_t g_debugSkills;
 vmCvar_t g_heavyWeaponRestriction;
@@ -434,7 +436,9 @@ cvarTable_t gameCvarTable[] = {
 	{ &url, "URL", "", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qfalse },
 
 	{ &g_letterbox, "cg_letterbox", "0", CVAR_TEMP    },
+#ifndef NO_BOT_SUPPORT
 	{ &bot_enable,  "bot_enable",    "0", 0           },
+#endif
 
 	{ &g_debugSkills,   "g_debugSkills", "0", 0       },
 

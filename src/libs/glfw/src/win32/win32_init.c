@@ -30,6 +30,8 @@
 
 #include "internal.h"
 
+#include <stdlib.h>
+
 #ifdef __BORLANDC__
 // With the Borland C++ compiler, we want to disable FPU exceptions
 #include <float.h>
@@ -59,12 +61,18 @@ static GLboolean initLibraries(void)
         GetProcAddress(_glfwLibrary.Win32.gdi.instance, "SetPixelFormat");
     _glfwLibrary.Win32.gdi.SwapBuffers = (SWAPBUFFERS_T)
         GetProcAddress(_glfwLibrary.Win32.gdi.instance, "SwapBuffers");
+    _glfwLibrary.Win32.gdi.GetDeviceGammaRamp  = (GETDEVICEGAMMARAMP_T)
+        GetProcAddress(_glfwLibrary.Win32.gdi.instance, "GetDeviceGammaRamp");
+    _glfwLibrary.Win32.gdi.SetDeviceGammaRamp  = (SETDEVICEGAMMARAMP_T)
+        GetProcAddress(_glfwLibrary.Win32.gdi.instance, "SetDeviceGammaRamp");
 
     if (!_glfwLibrary.Win32.gdi.ChoosePixelFormat ||
         !_glfwLibrary.Win32.gdi.DescribePixelFormat ||
         !_glfwLibrary.Win32.gdi.GetPixelFormat ||
         !_glfwLibrary.Win32.gdi.SetPixelFormat ||
-        !_glfwLibrary.Win32.gdi.SwapBuffers)
+        !_glfwLibrary.Win32.gdi.SwapBuffers ||
+        !_glfwLibrary.Win32.gdi.GetDeviceGammaRamp ||
+        !_glfwLibrary.Win32.gdi.SetDeviceGammaRamp)
     {
         return GL_FALSE;
     }
@@ -152,6 +160,10 @@ int _glfwPlatformInit(void)
 
     _glfwLibrary.Win32.instance = GetModuleHandle(NULL);
 
+    // Save the original gamma ramp
+    _glfwLibrary.originalRampSize = 256;
+    _glfwPlatformGetGammaRamp(&_glfwLibrary.originalRamp);
+
     _glfwInitTimer();
 
     return GL_TRUE;
@@ -164,6 +176,9 @@ int _glfwPlatformInit(void)
 
 int _glfwPlatformTerminate(void)
 {
+    // Restore the original gamma ramp
+    _glfwPlatformSetGammaRamp(&_glfwLibrary.originalRamp);
+
     if (_glfwLibrary.Win32.classAtom)
     {
         UnregisterClass(_GLFW_WNDCLASSNAME, _glfwLibrary.Win32.instance);

@@ -116,7 +116,7 @@ static int GLimp_SetMode(int mode, qboolean fullscreen)
 	const char* glstring;
 	int rbits, gbits, bbits, abits, cbits, dbits, sbits;
 	int width, height;
-	int res, once;
+	int once;
 	static GLFWvidmode dvidmode;
 	static int have_dvidmode;
 
@@ -194,7 +194,7 @@ static int GLimp_SetMode(int mode, qboolean fullscreen)
 			fullscreen ? GLFW_FULLSCREEN : GLFW_WINDOWED,
 			CLIENT_WINDOW_TITLE, NULL);
 		
-		if (res)
+		if (glfwWindow)
 		{
 			glfwSwapInterval(r_swapInterval->integer);
 			glfwDisable(glfwWindow, GLFW_MOUSE_CURSOR);
@@ -217,10 +217,10 @@ static int GLimp_SetMode(int mode, qboolean fullscreen)
 			once = 1;
 		}
 	}
-	while (!res);
+	while (!glfwWindow);
 			
 	/* set the cvars to the actual values */
-	if (res)
+	if (glfwWindow)
 	{
 		rbits = glfwGetWindowParam(glfwWindow, GLFW_RED_BITS);
 		gbits = glfwGetWindowParam(glfwWindow, GLFW_GREEN_BITS);
@@ -252,7 +252,7 @@ static int GLimp_SetMode(int mode, qboolean fullscreen)
 
 	GLimp_DetectAvailableModes();
 
-	if (!res)
+	if (!glfwWindow)
 	{
 		ri.Printf(PRINT_ALL, "Couldn't get a visual\n");
 		return RSERR_INVALID_MODE;

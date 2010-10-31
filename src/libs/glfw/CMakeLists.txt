@@ -8,8 +8,7 @@ set(GLFW_VERSION_MINOR "0")
 set(GLFW_VERSION_PATCH "0")
 set(GLFW_VERSION_EXTRA "")
 set(GLFW_VERSION "${GLFW_VERSION_MAJOR}.${GLFW_VERSION_MINOR}")
-set(GLFW_VERSION_FULL  
-    "${GLFW_VERSION}.${GLFW_VERSION_PATCH}${GLFW_VERSION_EXTRA}")
+set(GLFW_VERSION_FULL "${GLFW_VERSION}.${GLFW_VERSION_PATCH}${GLFW_VERSION_EXTRA}")
 
 include(CheckFunctionExists)
 include(CheckSymbolExists)
@@ -20,6 +19,7 @@ set(common_SOURCES
     ${GLFW_SOURCE_DIR}/src/enable.c 
     ${GLFW_SOURCE_DIR}/src/error.c
     ${GLFW_SOURCE_DIR}/src/fullscreen.c
+    ${GLFW_SOURCE_DIR}/src/gamma.c
     ${GLFW_SOURCE_DIR}/src/glext.c 
     ${GLFW_SOURCE_DIR}/src/init.c 
     ${GLFW_SOURCE_DIR}/src/input.c 
@@ -67,14 +67,12 @@ if (UNIX AND NOT APPLE AND NOT CYGWIN)
     endif(X11_XRANDR_FOUND)
 
     # Check for Xf86VidMode (fallback legacy resolution switching extension)
-    if (NOT X11_XRANDR_FOUND)
-        CHECK_X11_XF86VIDMODE()
-        if (X11_XF86VIDMODE_FOUND)
-            set(_GLFW_HAS_XF86VIDMODE 1)
-            list(APPEND GLFW_INCLUDE_DIR ${X11_XF86VIDMODE_INCLUDE_DIR})
-            list(APPEND GLFW_LIBRARIES ${X11_XF86VIDMODE_LIBRARIES})
-        endif(X11_XF86VIDMODE_FOUND) 
-    endif (NOT X11_XRANDR_FOUND)
+    CHECK_X11_XF86VIDMODE()
+    if (X11_XF86VIDMODE_FOUND)
+        set(_GLFW_HAS_XF86VIDMODE 1)
+        list(APPEND GLFW_INCLUDE_DIR ${X11_XF86VIDMODE_INCLUDE_DIR})
+        list(APPEND GLFW_LIBRARIES ${X11_XF86VIDMODE_LIBRARIES})
+    endif(X11_XF86VIDMODE_FOUND) 
 
     CHECK_FUNCTION_EXISTS(glXGetProcAddress _GLFW_HAS_GLXGETPROCADDRESS)
 
@@ -131,7 +129,7 @@ add_subdirectory(tests)
 #--------------------------------------------------------------------
 # Create shared configuration header
 #--------------------------------------------------------------------
-configure_file(${GLFW_SOURCE_DIR}/src/config.h.cmake 
+configure_file(${GLFW_SOURCE_DIR}/src/config.h.in 
                ${GLFW_BINARY_DIR}/src/config.h @ONLY)
 
 #--------------------------------------------------------------------
@@ -160,8 +158,7 @@ install(FILES COPYING.txt readme.html
 # Uninstall operation
 #--------------------------------------------------------------------
 configure_file(${GLFW_SOURCE_DIR}/cmake_uninstall.cmake.in
-               ${GLFW_BINARY_DIR}/cmake_uninstall.cmake
-               IMMEDIATE @ONLY)
+               ${GLFW_BINARY_DIR}/cmake_uninstall.cmake IMMEDIATE @ONLY)
 
 add_custom_target(uninstall
                   ${CMAKE_COMMAND} -P

@@ -1,0 +1,1 @@
+../src/libs/glfw/CMake/linux-i686-pc-mingw32.cmake

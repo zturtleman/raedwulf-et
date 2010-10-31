@@ -275,6 +275,7 @@ version of GLFW.</p>
   <li>Added <code>sharing</code> simple OpenGL object sharing test program</li>
   <li>Added a parameter to <code>glfwOpenWindow</code> for specifying a context the new window's context will share objects with</li>
   <li>Added initial window title parameter to <code>glfwOpenWindow</code></li>
+  <li>Added <code>glfwSetGammaFormula</code>, <code>glfwSetGammaRamp</code> and <code>glfwGetGammaRamp</code> functions and <code>GLFWgammaramp</code> type for monitor gamma ramp control</li>
   <li>Changed buffer bit depth parameters of <code>glfwOpenWindow</code> to window hints</li>
   <li>Renamed <code>glfw.h</code> to <code>glfw3.h</code> to avoid conflicts with 2.x series</li>
   <li>Renamed <code>GLFW_WINDOW</code> token to <code>GLFW_WINDOWED</code></li>
@@ -801,6 +802,9 @@ their skills.  Special thanks go out to:</p>
 
   <li>Jonathan Dummer, for submitting a patch fixing an input bug on Win32 and
   adding logic for the <code>GLFW_ICON</code> resource</li>
+
+  <li>Ralph Eastwood, for the initial design of the gamma correction API and
+  the Win32 and X11 implementations of it</li>
 
   <li>Gerald Franz, who made GLFW compile under IRIX, and supplied patches
   for the X11 keyboard translation routine</li>
