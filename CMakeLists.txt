@@ -77,6 +77,7 @@ file(GLOB_RECURSE GAME_SRC
 
 file(GLOB_RECURSE CGAME_SRC
 	"etmain/src/game/bg_*.c"
+	"etmain/src/ui/ui_shared.c"
 	"etmain/src/cgame/*.c")
 
 file(GLOB_RECURSE UI_SRC
