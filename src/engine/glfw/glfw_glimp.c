@@ -467,10 +467,8 @@ void GLimp_EndFrame(void)
 	if (Q_stricmp(r_drawBuffer->string, "GL_FRONT") != 0)
 		glfwSwapBuffers();
 
-	// Find out the current state
-	fullscreen = glfwGetWindowParam(glfwWindow, GLFW_FULLSCREEN);
-	
-	if (r_fullscreen->integer != fullscreen)
+	// check if the fullscreen setting has changed */
+	if (r_fullscreen->integer != glConfig.isFullscreen)
 	{
 		/*
 		glfwSetWindowMode(r_fullscreen->integer ?
