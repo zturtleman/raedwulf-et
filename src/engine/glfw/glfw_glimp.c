@@ -433,7 +433,7 @@ void GLimp_Init(void)
 	glConfig.deviceSupportsGamma = qfalse;
 	// glConfig.deviceSupportsGamma = !!(SDL_SetGamma(1.0f, 1.0f, 1.0f) >= 0);
 	// TODO: modify GLFW to support gamma
-	glConfig.deviceSupportsGamma = qfalse;
+	glConfig.deviceSupportsGamma = qtrue;
 
 	// get our config strings
 	Q_strncpyz(glConfig.vendor_string, (char *) glGetString (GL_VENDOR), sizeof(glConfig.vendor_string));
@@ -511,7 +511,7 @@ void GLimp_WakeRenderer(void *data)
 /**
  * GLimp_SetGamma
  */
-void GLimp_SetGamma (unsigned char red[256], unsigned char green[256], unsigned char blue[256])
+void GLimp_SetGamma (float gamma, float blacklevel, float gain)
 {
-	// TODO: glfw gamma code will be put in soon
+	glfwSetGammaFormula(gamma, blacklevel, gain);
 }

@@ -1018,6 +1018,7 @@ void R_Register( void ) {
 #else
 	r_gamma = ri.Cvar_Get( "r_gamma", "1.3", CVAR_ARCHIVE );
 #endif
+	AssertCvarRange( r_gamma, 0.001f, 10.0f, qtrue );
 	r_facePlaneCull = ri.Cvar_Get( "r_facePlaneCull", "1", CVAR_ARCHIVE );
 
 	r_railWidth = ri.Cvar_Get( "r_railWidth", "16", CVAR_ARCHIVE );
