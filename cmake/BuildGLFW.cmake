@@ -1,5 +1,6 @@
 # Build dependencies
 set(GLFW_SOURCE_DIR "src/libs/glfw")
+set(GLFW_BINARY_DIR "src/libs/glfw")
 
 # Build GLFW 3.x
 set(GLFW_VERSION_MAJOR "3")
@@ -116,12 +117,12 @@ file(GLOB platform_SOURCES
 #--------------------------------------------------------------------
 # Create shared configuration header
 #--------------------------------------------------------------------
-configure_file(${GLFW_SOURCE_DIR}/src/config.h.cmake 
+configure_file(${GLFW_SOURCE_DIR}/src/config.h.in
                ${GLFW_BINARY_DIR}/src/config.h @ONLY)
 
 set(GLFW_SRC ${common_SOURCES} ${platform_SOURCES})
 set(GLFW_INCLUDE_DIRS "${GLFW_SOURCE_DIR}/include"
                       "${GLFW_SOURCE_DIR}/src"
-                      "${GLFW_BINARY_DIR}/src"
+                      "${CMAKE_CURRENT_BINARY_DIR}/${GLFW_BINARY_DIR}/src"
                       "${GLFW_PLATFORM_DIR}")
 
