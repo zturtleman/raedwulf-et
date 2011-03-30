@@ -1,5 +1,5 @@
 //========================================================================
-// GLFW - An OpenGL framework
+// GLFW - An OpenGL library
 // Platform:    X11/GLX
 // API version: 3.0
 // WWW:         http://www.glfw.org/
@@ -31,9 +31,6 @@
 #ifndef _platform_h_
 #define _platform_h_
 
-// This is the X11 version of GLFW
-#define _GLFW_X11
-
 #include <sys/time.h>
 #include <unistd.h>
 #include <signal.h>
@@ -41,9 +38,10 @@
 #include <X11/keysym.h>
 #include <X11/Xatom.h>
 
+#define GLX_GLXEXT_LEGACY
 #include <GL/glx.h>
 
-#include "../../include/GL/glfw3.h"
+#include "../../include/GL/glxext.h"
 
 
 // We need declarations for GLX version 1.3 or above even if the server doesn't
@@ -66,13 +64,10 @@
  #include <dlfcn.h>
 #endif
 
-
-#ifndef GL_VERSION_3_0
-
-typedef const GLubyte* (APIENTRY *PFNGLGETSTRINGIPROC)(GLenum, GLuint);
-
-#endif /*GL_VERSION_3_0*/
-
+// The Xkb extension provides improved keyboard support
+#if defined(_GLFW_HAS_XKB)
+ #include <X11/XKBlib.h>
+#endif
 
 #define _GLFW_PLATFORM_WINDOW_STATE  _GLFWwindowX11 X11
 #define _GLFW_PLATFORM_LIBRARY_STATE _GLFWlibraryX11 X11
@@ -100,6 +95,7 @@ typedef struct _GLFWcontextGLX
 
     // GLX extensions
     PFNGLXSWAPINTERVALSGIPROC             SwapIntervalSGI;
+    PFNGLXSWAPINTERVALEXTPROC             SwapIntervalEXT;
     PFNGLXGETFBCONFIGATTRIBSGIXPROC       GetFBConfigAttribSGIX;
     PFNGLXCHOOSEFBCONFIGSGIXPROC          ChooseFBConfigSGIX;
     PFNGLXCREATECONTEXTWITHCONFIGSGIXPROC CreateContextWithConfigSGIX;
@@ -107,9 +103,13 @@ typedef struct _GLFWcontextGLX
     PFNGLXCREATECONTEXTATTRIBSARBPROC     CreateContextAttribsARB;
     GLboolean   has_GLX_SGIX_fbconfig;
     GLboolean   has_GLX_SGI_swap_control;
+    GLboolean   has_GLX_EXT_swap_control;
     GLboolean   has_GLX_ARB_multisample;
     GLboolean   has_GLX_ARB_create_context;
     GLboolean   has_GLX_ARB_create_context_profile;
+    GLboolean   has_GLX_ARB_create_context_robustness;
+    GLboolean   has_GLX_EXT_create_context_es2_profile;
+
 } _GLFWcontextGLX;
 
 
@@ -166,6 +166,18 @@ typedef struct _GLFWlibraryX11
         int         minorVersion;
         GLboolean   gammaBroken;
     } RandR;
+
+    struct {
+        GLboolean   available;
+        int         majorOpcode;
+        int         eventBase;
+        int         errorBase;
+        int         majorVersion;
+        int         minorVersion;
+    } Xkb;
+
+    // Key code LUT (mapping X11 key codes to GLFW key codes)
+    int         keyCodeLUT[256];
 
     // Screensaver data
     struct {

@@ -1,5 +1,5 @@
 //========================================================================
-// GLFW - An OpenGL framework
+// GLFW - An OpenGL library
 // Platform:    Any
 // API version: 3.0
 // WWW:         http://www.glfw.org/
@@ -35,13 +35,27 @@
 #include <stdlib.h>
 
 
+//////////////////////////////////////////////////////////////////////////
+//////                       GLFW internal API                      //////
+//////////////////////////////////////////////////////////////////////////
+
 //========================================================================
-// Terminate GLFW when exiting application
+// Allocate memory using the allocator
 //========================================================================
 
-static void glfw_atexit(void)
+void* _glfwMalloc(size_t size)
 {
-    glfwTerminate();
+    return _glfwLibrary.allocator.malloc(size);
+}
+
+
+//========================================================================
+// Free memory using the allocator
+//========================================================================
+
+void _glfwFree(void* ptr)
+{
+    _glfwLibrary.allocator.free(ptr);
 }
 
 
@@ -55,14 +69,45 @@ static void glfw_atexit(void)
 
 GLFWAPI int glfwInit(void)
 {
+    return glfwInitWithModels(NULL, NULL);
+}
+
+
+//========================================================================
+// Initialize various GLFW state using custom model interfaces
+//========================================================================
+
+GLFWAPI int glfwInitWithModels(GLFWthreadmodel* threading, GLFWallocator* allocator)
+{
     if (_glfwInitialized)
         return GL_TRUE;
 
     memset(&_glfwLibrary, 0, sizeof(_glfwLibrary));
 
-    // Not all window hints are cleared to zero, so this needs to be here
-    // despite the memset above
-    _glfwClearWindowHints();
+    if (threading)
+        _glfwLibrary.threading = *threading;
+
+    if (allocator)
+    {
+        // Verify that the specified model is complete
+        if (!allocator->malloc || !allocator->free)
+        {
+            _glfwSetError(GLFW_INVALID_VALUE, NULL);
+            return GL_FALSE;
+        }
+
+        _glfwLibrary.allocator = *allocator;
+    }
+    else
+    {
+        // Use the libc malloc and free
+        _glfwLibrary.allocator.malloc = malloc;
+        _glfwLibrary.allocator.free = free;
+    }
+
+    // Not all window hints have zero as their default value, so this
+    // needs to be here despite the memset above
+    _glfwSetDefaultWindowHints();
 
     if (!_glfwPlatformInit())
     {
@@ -70,7 +115,7 @@ GLFWAPI int glfwInit(void)
         return GL_FALSE;
     }
 
-    atexit(glfw_atexit);
+    atexit(glfwTerminate);
 
     _glfwInitialized = GL_TRUE;
 

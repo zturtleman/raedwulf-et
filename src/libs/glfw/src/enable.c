@@ -1,5 +1,5 @@
 //========================================================================
-// GLFW - An OpenGL framework
+// GLFW - An OpenGL library
 // Platform:    Any
 // API version: 3.0
 // WWW:         http://www.glfw.org/
@@ -185,7 +185,7 @@ GLFWAPI void glfwEnable(GLFWwindow window, int token)
 {
     if (!_glfwInitialized)
     {
-        _glfwSetError(GLFW_NOT_INITIALIZED);
+        _glfwSetError(GLFW_NOT_INITIALIZED, NULL);
         return;
     }
 
@@ -220,7 +220,7 @@ GLFWAPI void glfwDisable(GLFWwindow window, int token)
 {
     if (!_glfwInitialized)
     {
-        _glfwSetError(GLFW_NOT_INITIALIZED);
+        _glfwSetError(GLFW_NOT_INITIALIZED, NULL);
         return;
     }
 

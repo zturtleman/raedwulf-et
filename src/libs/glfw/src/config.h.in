@@ -1,5 +1,5 @@
 //========================================================================
-// GLFW - An OpenGL framework
+// GLFW - An OpenGL library
 // Platform:    Any
 // API version: 3.0
 // WWW:         http://www.glfw.org/
@@ -35,10 +35,20 @@
 // it.  Instead, you should modify the config.h.in file.
 //========================================================================
 
+// Define this to 1 if building GLFW for X11/GLX
+#cmakedefine _GLFW_X11_GLX
+// Define this to 1 if building GLFW for Win32/WGL
+#cmakedefine _GLFW_WIN32_WGL
+// Define this to 1 if building GLFW for Cocoa/NSOpenGL
+#cmakedefine _GLFW_COCOA_NSGL
+
 // Define this to 1 if XRandR is available
 #cmakedefine _GLFW_HAS_XRANDR      1
 // Define this to 1 if Xf86VidMode is available
 #cmakedefine _GLFW_HAS_XF86VIDMODE 1
+
+// Define this to 1 if Xkb is available
+#cmakedefine _GLFW_HAS_XKB         1
 
 // Define this to 1 if glXGetProcAddress is available
 #cmakedefine _GLFW_HAS_GLXGETPROCADDRESS    1

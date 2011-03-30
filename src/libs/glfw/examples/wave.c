@@ -27,6 +27,10 @@ GLfloat alpha = 210.f, beta = -70.f;
 GLfloat zoom = 2.f;
 
 GLboolean running = GL_TRUE;
+GLboolean locked = GL_FALSE;
+
+int cursorX;
+int cursorY;
 
 struct Vertex
 {
@@ -262,7 +266,7 @@ void key_callback(GLFWwindow window, int key, int action)
 
     switch (key)
     {
-        case GLFW_KEY_ESC:
+        case GLFW_KEY_ESCAPE:
             running = 0;
             break;
         case GLFW_KEY_SPACE:
@@ -280,16 +284,68 @@ void key_callback(GLFWwindow window, int key, int action)
         case GLFW_KEY_DOWN:
             beta += 5;
             break;
-        case GLFW_KEY_PAGEUP:
-            if (zoom > 1)
-                zoom -= 1;
+        case GLFW_KEY_PAGE_UP:
+            zoom -= 0.25f;
+            if (zoom < 0.f)
+                zoom = 0.f;
             break;
-        case GLFW_KEY_PAGEDOWN:
-            zoom += 1;
+        case GLFW_KEY_PAGE_DOWN:
+            zoom += 0.25f;
             break;
         default:
             break;
     }
+}
+
+
+//========================================================================
+// Callback function for mouse button events
+//========================================================================
+
+void mouse_button_callback(GLFWwindow window, int button, int action)
+{
+    if (button != GLFW_MOUSE_BUTTON_LEFT)
+        return;
+
+    if (action == GLFW_PRESS)
+    {
+        glfwDisable(window, GLFW_MOUSE_CURSOR);
+        locked = GL_TRUE;
+    }
+    else
+    {
+        locked = GL_FALSE;
+        glfwEnable(window, GLFW_MOUSE_CURSOR);
+    }
+}
+
+
+//========================================================================
+// Callback function for mouse motion events
+//========================================================================
+
+void mouse_position_callback(GLFWwindow window, int x, int y)
+{
+    if (locked)
+    {
+        alpha += (x - cursorX) / 10.f;
+        beta += (y - cursorY) / 10.f;
+    }
+
+    cursorX = x;
+    cursorY = y;
+}
+
+
+//========================================================================
+// Callback function for scroll events
+//========================================================================
+
+void scroll_callback(GLFWwindow window, int x, int y)
+{
+    zoom += y / 4.f;
+    if (zoom < 0)
+        zoom = 0;
 }
 
 
@@ -344,6 +400,9 @@ int main(int argc, char* argv[])
 
     // Window resize handler
     glfwSetWindowSizeCallback(window_resize_callback);
+    glfwSetMouseButtonCallback(mouse_button_callback);
+    glfwSetMousePosCallback(mouse_position_callback);
+    glfwSetScrollCallback(scroll_callback);
 
     // Initialize OpenGL
     init_opengl();

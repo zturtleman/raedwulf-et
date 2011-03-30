@@ -1,5 +1,5 @@
 //========================================================================
-// GLFW - An OpenGL framework
+// GLFW - An OpenGL library
 // Platform:    All
 // API version: 3.0
 // WWW:         http://www.glfw.org/
@@ -43,11 +43,26 @@ static int _glfwError = GLFW_NO_ERROR;
 
 //========================================================================
 // Sets the current error value
+// This function may be called without GLFW having been initialized
 //========================================================================
 
-void _glfwSetError(int error)
+void _glfwSetError(int error, const char* description)
 {
-    _glfwError = error;
+    if (!_glfwInitialized)
+    {
+        _glfwError = error;
+        return;
+    }
+
+    if (_glfwLibrary.errorCallback)
+    {
+        if (!description)
+            description = glfwErrorString(error);
+
+        _glfwLibrary.errorCallback(error, description);
+    }
+    else
+        _glfwError = error;
 }
 
 
@@ -57,6 +72,7 @@ void _glfwSetError(int error)
 
 //========================================================================
 // Returns the current error value
+// This function may be called without GLFW having been initialized
 //========================================================================
 
 GLFWAPI int glfwGetError(void)
@@ -69,6 +85,7 @@ GLFWAPI int glfwGetError(void)
 
 //========================================================================
 // Returns a string representation of the specified error value
+// This function may be called without GLFW having been initialized
 //========================================================================
 
 GLFWAPI const char* glfwErrorString(int error)
@@ -94,8 +111,23 @@ GLFWAPI const char* glfwErrorString(int error)
         case GLFW_PLATFORM_ERROR:
             return "A platform-specific error occurred";
         default:
-            // TODO: Set GLFW_INVALID_ENUM here?
-            return NULL;
+            return "ERROR: UNKNOWN ERROR TOKEN PASSED TO glfwErrorString";
     }
+}
+
+
+//========================================================================
+// Sets the callback function for GLFW errors
+//========================================================================
+
+GLFWAPI void glfwSetErrorCallback(GLFWerrorfun cbfun)
+{
+    if (!_glfwInitialized)
+    {
+        _glfwSetError(GLFW_NOT_INITIALIZED, NULL);
+        return;
+    }
+
+    _glfwLibrary.errorCallback = cbfun;
 }
 

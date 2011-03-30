@@ -1,5 +1,5 @@
 //========================================================================
-// GLFW - An OpenGL framework
+// GLFW - An OpenGL library
 // Platform:    Cocoa/NSOpenGL
 // API Version: 3.0
 // WWW:         http://www.glfw.org/
@@ -34,23 +34,11 @@
 #include <stdint.h>
 
 
-// This is the Mac OS X version of GLFW
-#define _GLFW_MAC_OS_X
-
 #if defined(__OBJC__)
 #import <Cocoa/Cocoa.h>
 #else
 typedef void* id;
 #endif
-
-#include "../../include/GL/glfw3.h"
-
-
-#ifndef GL_VERSION_3_0
-
-typedef const GLubyte* (APIENTRY *PFNGLGETSTRINGIPROC)(GLenum, GLuint);
-
-#endif /*GL_VERSION_3_0*/
 
 
 #define _GLFW_PLATFORM_WINDOW_STATE  _GLFWwindowNS NS

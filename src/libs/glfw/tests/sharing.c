@@ -37,7 +37,7 @@
 
 static void key_callback(GLFWwindow window, int key, int action)
 {
-    if (action == GLFW_PRESS && key == GLFW_KEY_ESC)
+    if (action == GLFW_PRESS && key == GLFW_KEY_ESCAPE)
         glfwCloseWindow(window);
 }
 
@@ -142,6 +142,7 @@ int main(int argc, char** argv)
         exit(EXIT_FAILURE);
     }
 
+    // Put the second window to the right of the first one
     glfwGetWindowPos(windows[0], &x, &y);
     glfwSetWindowPos(windows[1], x + WIDTH + 50, y);
 

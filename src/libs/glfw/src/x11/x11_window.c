@@ -1,5 +1,5 @@
 //========================================================================
-// GLFW - An OpenGL framework
+// GLFW - An OpenGL library
 // Platform:    X11/GLX
 // API version: 3.0
 // WWW:         http://www.glfw.org/
@@ -34,7 +34,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 
 // Action for EWMH client messages
 #define _NET_WM_STATE_REMOVE        0
@@ -128,7 +127,7 @@ static Atom getSupportedAtom(Atom* supportedAtoms,
 // Check whether the running window manager is EWMH-compliant
 //========================================================================
 
-static GLboolean checkForEWMH(_GLFWwindow* window)
+static GLboolean hasEWMH(_GLFWwindow* window)
 {
     Window* windowFromRoot = NULL;
     Window* windowFromChild = NULL;
@@ -213,123 +212,14 @@ static GLboolean checkForEWMH(_GLFWwindow* window)
 
 static int translateKey(int keycode)
 {
-    KeySym key, key_lc, key_uc;
-
-    // Try secondary keysym, for numeric keypad keys
-    // Note: This way we always force "NumLock = ON", which at least
-    // enables GLFW users to detect numeric keypad keys
-    key = XKeycodeToKeysym(_glfwLibrary.X11.display, keycode, 1);
-    switch (key)
+    // Use the pre-filled LUT (see updateKeyCodeLUT() ).
+    if ((keycode >= 0) && (keycode < 256))
     {
-        // Numeric keypad
-        case XK_KP_0:         return GLFW_KEY_KP_0;
-        case XK_KP_1:         return GLFW_KEY_KP_1;
-        case XK_KP_2:         return GLFW_KEY_KP_2;
-        case XK_KP_3:         return GLFW_KEY_KP_3;
-        case XK_KP_4:         return GLFW_KEY_KP_4;
-        case XK_KP_5:         return GLFW_KEY_KP_5;
-        case XK_KP_6:         return GLFW_KEY_KP_6;
-        case XK_KP_7:         return GLFW_KEY_KP_7;
-        case XK_KP_8:         return GLFW_KEY_KP_8;
-        case XK_KP_9:         return GLFW_KEY_KP_9;
-        case XK_KP_Separator:
-        case XK_KP_Decimal:   return GLFW_KEY_KP_DECIMAL;
-        case XK_KP_Equal:     return GLFW_KEY_KP_EQUAL;
-        case XK_KP_Enter:     return GLFW_KEY_KP_ENTER;
-        default:              break;
+        return _glfwLibrary.X11.keyCodeLUT[keycode];
     }
-
-    // Now try pimary keysym
-    key = XKeycodeToKeysym(_glfwLibrary.X11.display, keycode, 0);
-    switch (key)
+    else
     {
-        // Special keys (non character keys)
-        case XK_Escape:       return GLFW_KEY_ESC;
-        case XK_Tab:          return GLFW_KEY_TAB;
-        case XK_Shift_L:      return GLFW_KEY_LSHIFT;
-        case XK_Shift_R:      return GLFW_KEY_RSHIFT;
-        case XK_Control_L:    return GLFW_KEY_LCTRL;
-        case XK_Control_R:    return GLFW_KEY_RCTRL;
-        case XK_Meta_L:
-        case XK_Alt_L:        return GLFW_KEY_LALT;
-        case XK_Mode_switch:  // Mapped to Alt_R on many keyboards
-        case XK_Meta_R:
-        case XK_ISO_Level3_Shift: // AltGr on at least some machines
-        case XK_Alt_R:        return GLFW_KEY_RALT;
-        case XK_Super_L:      return GLFW_KEY_LSUPER;
-        case XK_Super_R:      return GLFW_KEY_RSUPER;
-        case XK_Menu:         return GLFW_KEY_MENU;
-        case XK_Num_Lock:     return GLFW_KEY_KP_NUM_LOCK;
-        case XK_Caps_Lock:    return GLFW_KEY_CAPS_LOCK;
-        case XK_Scroll_Lock:  return GLFW_KEY_SCROLL_LOCK;
-        case XK_Pause:        return GLFW_KEY_PAUSE;
-        case XK_KP_Delete:
-        case XK_Delete:       return GLFW_KEY_DEL;
-        case XK_BackSpace:    return GLFW_KEY_BACKSPACE;
-        case XK_Return:       return GLFW_KEY_ENTER;
-        case XK_KP_Home:
-        case XK_Home:         return GLFW_KEY_HOME;
-        case XK_KP_End:
-        case XK_End:          return GLFW_KEY_END;
-        case XK_KP_Page_Up:
-        case XK_Page_Up:      return GLFW_KEY_PAGEUP;
-        case XK_KP_Page_Down:
-        case XK_Page_Down:    return GLFW_KEY_PAGEDOWN;
-        case XK_KP_Insert:
-        case XK_Insert:       return GLFW_KEY_INSERT;
-        case XK_KP_Left:
-        case XK_Left:         return GLFW_KEY_LEFT;
-        case XK_KP_Right:
-        case XK_Right:        return GLFW_KEY_RIGHT;
-        case XK_KP_Down:
-        case XK_Down:         return GLFW_KEY_DOWN;
-        case XK_KP_Up:
-        case XK_Up:           return GLFW_KEY_UP;
-        case XK_F1:           return GLFW_KEY_F1;
-        case XK_F2:           return GLFW_KEY_F2;
-        case XK_F3:           return GLFW_KEY_F3;
-        case XK_F4:           return GLFW_KEY_F4;
-        case XK_F5:           return GLFW_KEY_F5;
-        case XK_F6:           return GLFW_KEY_F6;
-        case XK_F7:           return GLFW_KEY_F7;
-        case XK_F8:           return GLFW_KEY_F8;
-        case XK_F9:           return GLFW_KEY_F9;
-        case XK_F10:          return GLFW_KEY_F10;
-        case XK_F11:          return GLFW_KEY_F11;
-        case XK_F12:          return GLFW_KEY_F12;
-        case XK_F13:          return GLFW_KEY_F13;
-        case XK_F14:          return GLFW_KEY_F14;
-        case XK_F15:          return GLFW_KEY_F15;
-        case XK_F16:          return GLFW_KEY_F16;
-        case XK_F17:          return GLFW_KEY_F17;
-        case XK_F18:          return GLFW_KEY_F18;
-        case XK_F19:          return GLFW_KEY_F19;
-        case XK_F20:          return GLFW_KEY_F20;
-        case XK_F21:          return GLFW_KEY_F21;
-        case XK_F22:          return GLFW_KEY_F22;
-        case XK_F23:          return GLFW_KEY_F23;
-        case XK_F24:          return GLFW_KEY_F24;
-        case XK_F25:          return GLFW_KEY_F25;
-
-        // Numeric keypad (should have been detected in secondary keysym!)
-        case XK_KP_Divide:    return GLFW_KEY_KP_DIVIDE;
-        case XK_KP_Multiply:  return GLFW_KEY_KP_MULTIPLY;
-        case XK_KP_Subtract:  return GLFW_KEY_KP_SUBTRACT;
-        case XK_KP_Add:       return GLFW_KEY_KP_ADD;
-        case XK_KP_Equal:     return GLFW_KEY_KP_EQUAL;
-        case XK_KP_Enter:     return GLFW_KEY_KP_ENTER;
-
-        // The rest (should be printable keys)
-        default:
-            // Make uppercase
-            XConvertCase(key, &key_lc, &key_uc);
-            key = key_uc;
-
-            // Valid ISO 8859-1 character?
-            if ((key >=  32 && key <= 126) || (key >= 160 && key <= 255))
-                return (int) key;
-
-            return GLFW_KEY_UNKNOWN;
+        return -1;
     }
 }
 
@@ -387,8 +277,7 @@ static _GLFWfbconfig* getFBConfigs(_GLFWwindow* window, unsigned int* found)
     {
         if (!window->GLX.has_GLX_SGIX_fbconfig)
         {
-            fprintf(stderr, "GLXFBConfigs are not supported by the X server\n");
-            _glfwSetError(GLFW_OPENGL_UNAVAILABLE);
+            _glfwSetError(GLFW_OPENGL_UNAVAILABLE, "X11/GLX: GLXFBConfig support not found");
             return NULL;
         }
     }
@@ -401,8 +290,7 @@ static _GLFWfbconfig* getFBConfigs(_GLFWwindow* window, unsigned int* found)
                                                    &count);
         if (!count)
         {
-            fprintf(stderr, "No GLXFBConfigs returned\n");
-            _glfwSetError(GLFW_OPENGL_UNAVAILABLE);
+            _glfwSetError(GLFW_OPENGL_UNAVAILABLE, "X11/GLX: No GLXFBConfigs returned");
             return NULL;
         }
     }
@@ -411,16 +299,15 @@ static _GLFWfbconfig* getFBConfigs(_GLFWwindow* window, unsigned int* found)
         fbconfigs = glXGetFBConfigs(_glfwLibrary.X11.display, _glfwLibrary.X11.screen, &count);
         if (!count)
         {
-            fprintf(stderr, "No GLXFBConfigs returned\n");
-            _glfwSetError(GLFW_OPENGL_UNAVAILABLE);
+            _glfwSetError(GLFW_OPENGL_UNAVAILABLE, "X11/GLX: No GLXFBConfigs returned");
             return NULL;
         }
     }
 
-    result = (_GLFWfbconfig*) malloc(sizeof(_GLFWfbconfig) * count);
+    result = (_GLFWfbconfig*) _glfwMalloc(sizeof(_GLFWfbconfig) * count);
     if (!result)
     {
-        _glfwSetError(GLFW_OUT_OF_MEMORY);
+        _glfwSetError(GLFW_OUT_OF_MEMORY, "X11/GLX: Failed to allocate _GLFWfbconfig array");
         return NULL;
     }
 
@@ -490,7 +377,7 @@ static int createContext(_GLFWwindow* window,
                          GLXFBConfigID fbconfigID)
 {
     int attribs[40];
-    int flags, dummy, index;
+    int dummy, index;
     GLXFBConfig* fbconfig;
     GLXContext share = NULL;
 
@@ -521,8 +408,7 @@ static int createContext(_GLFWwindow* window,
 
         if (fbconfig == NULL)
         {
-            fprintf(stderr, "Unable to retrieve the selected GLXFBConfig\n");
-            _glfwSetError(GLFW_PLATFORM_ERROR);
+            _glfwSetError(GLFW_PLATFORM_ERROR, "X11/GLX: Failed to retrieve the selected GLXFBConfig");
             return GL_FALSE;
         }
     }
@@ -543,8 +429,7 @@ static int createContext(_GLFWwindow* window,
     {
         XFree(fbconfig);
 
-        fprintf(stderr, "Unable to retrieve visual for GLXFBconfig\n");
-        _glfwSetError(GLFW_PLATFORM_ERROR);
+        _glfwSetError(GLFW_PLATFORM_ERROR, "X11/GLX: Failed to retrieve visual for GLXFBConfig");
         return GL_FALSE;
     }
 
@@ -560,9 +445,9 @@ static int createContext(_GLFWwindow* window,
             setGLXattrib(attribs, index, GLX_CONTEXT_MINOR_VERSION_ARB, wndconfig->glMinor);
         }
 
-        if (wndconfig->glForward || wndconfig->glDebug)
+        if (wndconfig->glForward || wndconfig->glDebug || wndconfig->glRobustness)
         {
-            flags = 0;
+            int flags = 0;
 
             if (wndconfig->glForward)
                 flags |= GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
@@ -570,25 +455,55 @@ static int createContext(_GLFWwindow* window,
             if (wndconfig->glDebug)
                 flags |= GLX_CONTEXT_DEBUG_BIT_ARB;
 
+            if (wndconfig->glRobustness)
+                flags |= GLX_CONTEXT_ROBUST_ACCESS_BIT_ARB;
+
             setGLXattrib(attribs, index, GLX_CONTEXT_FLAGS_ARB, flags);
         }
 
         if (wndconfig->glProfile)
         {
+            int flags = 0;
+
             if (!window->GLX.has_GLX_ARB_create_context_profile)
             {
-                fprintf(stderr, "OpenGL profile requested but GLX_ARB_create_context_profile "
-                                "is unavailable\n");
-                _glfwSetError(GLFW_VERSION_UNAVAILABLE);
+                _glfwSetError(GLFW_VERSION_UNAVAILABLE, "X11/GLX: An OpenGL profile requested but GLX_ARB_create_context_profile is unavailable");
+                return GL_FALSE;
+            }
+
+            if (wndconfig->glProfile == GLFW_OPENGL_ES2_PROFILE &&
+                !window->GLX.has_GLX_EXT_create_context_es2_profile)
+            {
+                _glfwSetError(GLFW_VERSION_UNAVAILABLE, "X11/GLX: OpenGL ES 2.x profile requested but GLX_EXT_create_context_es2_profile is unavailable");
                 return GL_FALSE;
             }
 
             if (wndconfig->glProfile == GLFW_OPENGL_CORE_PROFILE)
                 flags = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
-            else
+            else if (wndconfig->glProfile == GLFW_OPENGL_COMPAT_PROFILE)
                 flags = GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+            else if (wndconfig->glProfile == GLFW_OPENGL_ES2_PROFILE)
+                flags = GLX_CONTEXT_ES2_PROFILE_BIT_EXT;
 
             setGLXattrib(attribs, index, GLX_CONTEXT_PROFILE_MASK_ARB, flags);
+        }
+
+        if (wndconfig->glRobustness)
+        {
+            int strategy;
+
+            if (!window->GLX.has_GLX_ARB_create_context_robustness)
+            {
+                _glfwSetError(GLFW_VERSION_UNAVAILABLE, "X11/GLX: An OpenGL robustness strategy was requested but GLX_ARB_create_context_robustness is unavailable");
+                return GL_FALSE;
+            }
+
+            if (wndconfig->glRobustness == GLFW_OPENGL_NO_RESET_NOTIFICATION)
+                strategy = GLX_NO_RESET_NOTIFICATION_ARB;
+            else if (wndconfig->glRobustness == GLFW_OPENGL_LOSE_CONTEXT_ON_RESET)
+                strategy = GLX_LOSE_CONTEXT_ON_RESET_ARB;
+
+            setGLXattrib(attribs, index, GLX_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB, strategy);
         }
 
         setGLXattrib(attribs, index, None, None);
@@ -634,9 +549,9 @@ static int createContext(_GLFWwindow* window,
 
     if (window->GLX.context == NULL)
     {
-        fprintf(stderr, "Unable to create OpenGL context\n");
         // TODO: Handle all the various error codes here
-        _glfwSetError(GLFW_PLATFORM_ERROR);
+
+        _glfwSetError(GLFW_PLATFORM_ERROR, "X11/GLX: Failed to create OpenGL context");
         return GL_FALSE;
     }
 
@@ -654,13 +569,25 @@ static int createContext(_GLFWwindow* window,
 
 static void initGLXExtensions(_GLFWwindow* window)
 {
-    if (_glfwPlatformExtensionSupported("GLX_SGI_swap_control"))
+    if (_glfwPlatformExtensionSupported("GLX_EXT_swap_control"))
     {
-        window->GLX.SwapIntervalSGI = (PFNGLXSWAPINTERVALSGIPROC)
-            _glfwPlatformGetProcAddress("glXSwapIntervalSGI");
+        window->GLX.SwapIntervalEXT = (PFNGLXSWAPINTERVALEXTPROC)
+            _glfwPlatformGetProcAddress("glXSwapIntervalEXT");
 
-        if (window->GLX.SwapIntervalSGI)
-            window->GLX.has_GLX_SGI_swap_control = GL_TRUE;
+        if (window->GLX.SwapIntervalEXT)
+            window->GLX.has_GLX_EXT_swap_control = GL_TRUE;
+    }
+
+    if (!window->GLX.has_GLX_EXT_swap_control)
+    {
+        if (_glfwPlatformExtensionSupported("GLX_SGI_swap_control"))
+        {
+            window->GLX.SwapIntervalSGI = (PFNGLXSWAPINTERVALSGIPROC)
+                _glfwPlatformGetProcAddress("glXSwapIntervalSGI");
+
+            if (window->GLX.SwapIntervalSGI)
+                window->GLX.has_GLX_SGI_swap_control = GL_TRUE;
+        }
     }
 
     if (_glfwPlatformExtensionSupported("GLX_SGIX_fbconfig"))
@@ -695,8 +622,24 @@ static void initGLXExtensions(_GLFWwindow* window)
             window->GLX.has_GLX_ARB_create_context = GL_TRUE;
     }
 
-    if (_glfwPlatformExtensionSupported("GLX_ARB_create_context_profile"))
-        window->GLX.has_GLX_ARB_create_context_profile = GL_TRUE;
+    if (window->GLX.has_GLX_ARB_create_context)
+    {
+        if (_glfwPlatformExtensionSupported("GLX_ARB_create_context_profile"))
+            window->GLX.has_GLX_ARB_create_context_profile = GL_TRUE;
+    }
+
+    if (window->GLX.has_GLX_ARB_create_context &&
+        window->GLX.has_GLX_ARB_create_context_profile)
+    {
+        if (_glfwPlatformExtensionSupported("GLX_EXT_create_context_es2_profile"))
+            window->GLX.has_GLX_EXT_create_context_es2_profile = GL_TRUE;
+    }
+
+    if (window->GLX.has_GLX_ARB_create_context)
+    {
+        if (_glfwPlatformExtensionSupported("GLX_ARB_create_context_robustness"))
+            window->GLX.has_GLX_ARB_create_context_robustness = GL_TRUE;
+    }
 }
 
 
@@ -755,13 +698,14 @@ static GLboolean createWindow(_GLFWwindow* window,
         if (!window->X11.handle)
         {
             // TODO: Handle all the various error codes here
-            _glfwSetError(GLFW_PLATFORM_ERROR);
+
+            _glfwSetError(GLFW_PLATFORM_ERROR, "X11/GLX: Failed to create window");
             return GL_FALSE;
         }
     }
 
     // Check whether an EWMH-compliant window manager is running
-    window->X11.hasEWMH = checkForEWMH(window);
+    window->X11.hasEWMH = hasEWMH(window);
 
     if (window->mode == GLFW_FULLSCREEN && !window->X11.hasEWMH)
     {
@@ -816,7 +760,7 @@ static GLboolean createWindow(_GLFWwindow* window,
         XWMHints* hints = XAllocWMHints();
         if (!hints)
         {
-            _glfwSetError(GLFW_OUT_OF_MEMORY);
+            _glfwSetError(GLFW_OUT_OF_MEMORY, "X11/GLX: Failed to allocate WM hints");
             return GL_FALSE;
         }
 
@@ -832,7 +776,7 @@ static GLboolean createWindow(_GLFWwindow* window,
         XSizeHints* hints = XAllocSizeHints();
         if (!hints)
         {
-            _glfwSetError(GLFW_OUT_OF_MEMORY);
+            _glfwSetError(GLFW_OUT_OF_MEMORY, "X11/GLX: Failed to allocate size hints");
             return GL_FALSE;
         }
 
@@ -1014,6 +958,7 @@ static void leaveFullscreenMode(_GLFWwindow* window)
 //========================================================================
 // Return the GLFW window corresponding to the specified X11 window
 //========================================================================
+
 static _GLFWwindow* findWindow(Window handle)
 {
     _GLFWwindow* window;
@@ -1073,7 +1018,7 @@ static void processSingleEvent(void)
             // Do not report key releases for key repeats. For key repeats we
             // will get KeyRelease/KeyPress pairs with similar or identical
             // time stamps. User selected key repeat filtering is handled in
-            // _glfwInputKey()/_glfwInputChar().
+            // _glfwInputKey/_glfwInputChar.
             if (XEventsQueued(_glfwLibrary.X11.display, QueuedAfterReading))
             {
                 XEvent nextEvent;
@@ -1423,12 +1368,12 @@ int _glfwPlatformOpenWindow(_GLFWwindow* window,
         result = _glfwChooseFBConfig(fbconfig, fbconfigs, fbcount);
         if (!result)
         {
-            free(fbconfigs);
+            _glfwFree(fbconfigs);
             return GL_FALSE;
         }
 
         closest = *result;
-        free(fbconfigs);
+        _glfwFree(fbconfigs);
     }
 
     if (!createContext(window, wndconfig, (GLXFBConfigID) closest.platformID))
@@ -1643,30 +1588,6 @@ void _glfwPlatformRestoreWindow(_GLFWwindow* window)
 
 
 //========================================================================
-// Swap OpenGL buffers
-//========================================================================
-
-void _glfwPlatformSwapBuffers(void)
-{
-    glXSwapBuffers(_glfwLibrary.X11.display,
-                   _glfwLibrary.currentWindow->X11.handle);
-}
-
-
-//========================================================================
-// Set double buffering swap interval
-//========================================================================
-
-void _glfwPlatformSwapInterval(int interval)
-{
-    _GLFWwindow* window = _glfwLibrary.currentWindow;
-
-    if (window->GLX.has_GLX_SGI_swap_control)
-        window->GLX.SwapIntervalSGI(interval);
-}
-
-
-//========================================================================
 // Read back framebuffer parameters from the context
 //========================================================================
 
@@ -1736,9 +1657,6 @@ void _glfwPlatformRefreshWindowParams(void)
     else
         window->samples = 0;
 
-    // Default to refresh rate unknown (=0 according to GLFW spec)
-    window->refreshRate = 0;
-
     // Retrieve refresh rate if possible
     if (_glfwLibrary.X11.RandR.available)
     {
@@ -1759,6 +1677,11 @@ void _glfwPlatformRefreshWindowParams(void)
         window->refreshRate = (int)(pixels_per_second/pixels_per_frame+0.5);
 #endif /*_GLFW_HAS_XF86VIDMODE*/
     }
+    else
+    {
+        // Zero means unknown according to the GLFW spec
+        window->refreshRate = 0;
+    }
 
     XFree(fbconfig);
 }
@@ -1771,12 +1694,6 @@ void _glfwPlatformRefreshWindowParams(void)
 void _glfwPlatformPollEvents(void)
 {
     _GLFWwindow* window;
-
-    for (window = _glfwLibrary.windowListHead;  window;  window = window->next)
-    {
-        window->scrollX = 0;
-        window->scrollY = 0;
-    }
 
     // Flag that the cursor has not moved
     window = _glfwLibrary.cursorLockWindow;

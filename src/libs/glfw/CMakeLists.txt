@@ -20,10 +20,10 @@ set(common_SOURCES
     ${GLFW_SOURCE_DIR}/src/error.c
     ${GLFW_SOURCE_DIR}/src/fullscreen.c
     ${GLFW_SOURCE_DIR}/src/gamma.c
-    ${GLFW_SOURCE_DIR}/src/glext.c 
     ${GLFW_SOURCE_DIR}/src/init.c 
     ${GLFW_SOURCE_DIR}/src/input.c 
     ${GLFW_SOURCE_DIR}/src/joystick.c 
+    ${GLFW_SOURCE_DIR}/src/opengl.c 
     ${GLFW_SOURCE_DIR}/src/time.c
     ${GLFW_SOURCE_DIR}/src/window.c
 )
@@ -33,6 +33,9 @@ set(common_SOURCES
 #--------------------------------------------------------------------
 if (WIN32)
     message(STATUS "Building GLFW for WGL on a Win32 system") 
+
+    # Define the platform identifier
+    set(_GLFW_WIN32_WGL 1)
 
     # Set up library and include paths
     set(CMAKE_REQUIRED_LIBRARIES ${OPENGL_gl_LIBRARY})
@@ -48,7 +51,10 @@ endif (WIN32)
 #--------------------------------------------------------------------
 if (UNIX AND NOT APPLE AND NOT CYGWIN)
     message(STATUS "Building GLFW for X11 and GLX on a Unix-like system")
-    
+
+    # Define the platform identifier
+    set(_GLFW_X11_GLX 1)
+
     # Set up library and include paths
     set(CMAKE_REQUIRED_LIBRARIES ${X11_X11_LIB} ${OPENGL_gl_LIBRARY})
     list(APPEND GLFW_INCLUDE_DIR ${X11_X11_INCLUDE_PATH})
@@ -74,6 +80,10 @@ if (UNIX AND NOT APPLE AND NOT CYGWIN)
         list(APPEND GLFW_LIBRARIES ${X11_XF86VIDMODE_LIBRARIES})
     endif(X11_XF86VIDMODE_FOUND) 
 
+    # Check for Xkb (X keyboard extension)
+    CHECK_FUNCTION_EXISTS(XkbQueryExtension _GLFW_HAS_XKB)
+
+    # Check for glXGetProcAddress
     CHECK_FUNCTION_EXISTS(glXGetProcAddress _GLFW_HAS_GLXGETPROCADDRESS)
 
     if (NOT _GLFW_HAS_GLXGETPROCADDRESS)
@@ -106,10 +116,20 @@ endif(UNIX AND NOT APPLE AND NOT CYGWIN)
 if (UNIX AND APPLE)
     message(STATUS "Building GLFW for Cocoa and NSOpenGL on Mac OS X")
         
+    # Define the platform identifier
+    set(_GLFW_COCOA_NSGL 1)
+
+    option(GLFW_BUILD_UNIVERSAL "Build the GLFW library and examples as Universal Binaries" FALSE)
+
     # Universal build, decent set of warning flags...
-    set(CMAKE_OSX_ARCHITECTURES ppc;i386;ppc64;x86_64)
-    set(CMAKE_OSX_SYSROOT /Developer/SDKs/MacOSX10.5.sdk)
-    set(CMAKE_C_FLAGS "-mmacosx-version-min=10.5 -Wall -Wextra -Wno-unused-parameter -Werror") 
+    if (GLFW_BUILD_UNIVERSAL)
+        message(STATUS "Building GLFW as Universal Binaries")
+        set(CMAKE_OSX_ARCHITECTURES ppc;i386;ppc64;x86_64)
+        set(CMAKE_OSX_SYSROOT /Developer/SDKs/MacOSX10.5.sdk)
+        set(CMAKE_C_FLAGS "-mmacosx-version-min=10.5 -Wall -Wextra -Wno-unused-parameter -Werror") 
+    else(GLFW_BUILD_UNIVERSAL)
+        message(STATUS "Building GLFW only for the native architecture")
+    endif(GLFW_BUILD_UNIVERSAL)
     
     # Set up library and include paths
     find_library(COCOA_FRAMEWORK Cocoa)

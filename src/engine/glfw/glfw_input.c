@@ -191,9 +191,9 @@ static keyNum_t IN_TranslateGLFWToQ3Key(int keysym, qboolean down)
 {
 	keyNum_t key = 0;
 
-	if(keysym >= GLFW_KEY_SPACE && keysym < GLFW_KEY_SPECIAL)
+	if(keysym >= GLFW_KEY_SPACE && keysym <= GLFW_KEY_WORLD_2)
 	{
-		// These happen to match the ASCII chars
+		// These happen to match the printable chars
 		key = (int)tolower(keysym);
 	}
 	else
@@ -279,7 +279,8 @@ static keyNum_t IN_TranslateGLFWToQ3Key(int keysym, qboolean down)
 			case GLFW_KEY_CAPS_LOCK:      key = K_CAPSLOCK;      break;
 
 			default:
-				if (keysym < GLFW_KEY_SPECIAL)
+				// TODO: What does this do again?
+				if (keysym <= GLFW_KEY_WORLD_2)
 					key = (keysym - 160) + K_WORLD_0;
 				break;
 		}

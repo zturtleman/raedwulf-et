@@ -265,12 +265,16 @@ version of GLFW.</p>
   <li>Added <code>glfwIsWindow</code> function for verifying that a given window handle is (still) valid</li>
   <li>Added <code>glfwMakeWindowCurrent</code> function for making the context of the specified window current</li>
   <li>Added <code>glfwGetError</code> and <code>glfwErrorString</code> error reporting functions and a number of error tokens</li>
+  <li>Added <code>glfwSetErrorCallback</code> function and <code>GLFWerrorfun</code> type for receiving more specific and/or nested errors</li>
   <li>Added <code>glfwSetWindowUserPointer</code> and <code>glfwGetWindowUserPointer</code> functions for per-window user pointers</li>
   <li>Added <code>glfwGetVersionString</code> function for determining which code paths were enabled at compile time</li>
   <li>Added <code>glfwGetWindowPos</code> function for querying the position of the specified window</li>
   <li>Added <code>glfwSetWindowFocusCallback</code> function and <code>GLFWwindowfocusfun</code> type for receiving window focus events</li>
   <li>Added <code>glfwSetWindowIconifyCallback</code> function and <code>GLFWwindowiconifyfun</code> type for receiving window iconification events</li>
   <li>Added <code>glfwGetCurrentWindow</code> function for retrieving the window whose OpenGL context is current</li>
+  <li>Added <code>glfwInitWithModels</code> function and <code>GLFWallocator</code> and <code>GLFWthreadmodel</code> types for pluggable memory allocation and threading models</li>
+  <li>Added <code>GLFW_OPENGL_ES2_PROFILE</code> profile for creating OpenGL ES 2.0 contexts using the <code>GLX_EXT_create_context_es2_profile</code> and <code>WGL_EXT_create_context_es2_profile</code> extensions</li>
+  <li>Added <code>GLFW_OPENGL_ROBUSTNESS</code> window hint and associated strategy tokens for <code>GL_ARB_robustness</code> support</li>
   <li>Added <code>windows</code> simple multi-window test program</li>
   <li>Added <code>sharing</code> simple OpenGL object sharing test program</li>
   <li>Added a parameter to <code>glfwOpenWindow</code> for specifying a context the new window's context will share objects with</li>
@@ -280,6 +284,7 @@ version of GLFW.</p>
   <li>Renamed <code>glfw.h</code> to <code>glfw3.h</code> to avoid conflicts with 2.x series</li>
   <li>Renamed <code>GLFW_WINDOW</code> token to <code>GLFW_WINDOWED</code></li>
   <li>Replaced ad hoc build system with CMake</li>
+  <li>Replaced layout-dependent key codes with single, platform-independent set based on US layout</li>
   <li>Replaced mouse wheel interface with two-dimensional scrolling interface</li>
   <li>Made Unicode character input unaffected by <code>GLFW_KEY_REPEAT</code></li>
   <li>Removed event auto-polling and the <code>GLFW_AUTO_POLL_EVENTS</code> window enable</li>
@@ -294,8 +299,14 @@ version of GLFW.</p>
   <li>Removed <code>GLFWCALL</code> and <code>GLFWAPIENTRY</code> macros for stdcall calling convention</li>
   <li>Bugfix: The default OpenGL version in the <code>version</code> test was set to 1.1</li>
   <li>Bugfix: The OpenGL profile and forward-compatibility window parameters were not saved after context creation</li>
+  <li>Bugfix: The FSAA test did not check for the availability of <code>GL_ARB_multisample</code></li>
+  <li>[Cocoa] Bugfix: The loop condition for saving video modes used the wrong index variable</li>
+  <li>[X11] Added support for the <code>GLX_EXT_swap_control</code> extension as an alternative to <code>GLX_SGI_swap_control</code></li>
   <li>[X11] Bugfix: Calling <code>glXCreateContextAttribsARB</code> with an unavailable OpenGL version caused the application to terminate with a <code>BadMatch</code> Xlib error</li>
   <li>[Win32] Removed explicit support for versions of Windows older than Windows XP</li>
+  <li>[Win32] Bugfix: Window activation and iconification did not work as expected</li>
+  <li>[Win32] Bugfix: Software rasterizer pixel formats were not discarded by the WGL_ARB_pixel_format code path</li>
+  <li>[Win32] Bugfix: The array for WGL context attributes was too small and could overflow</li>
 </ul>
 
 <h3>v2.7</h3>
@@ -663,7 +674,7 @@ version of GLFW.</p>
  <li>[X11] Bugfix: Fixed the window close bug</li>
  <li>[X11] Bugfix: Iconification/deactivation is now detected</li>
  <li>[X11] Bugfix: Non-OpenGL visuals are not listed anymore</li>
- <li>[XFree86] Bugfix: Undesired video mode changes are now prevented</li>
+ <li>[X11] Bugfix: Undesired video mode changes on XFree86 are now prevented</li>
 </ul>
 
 <h3>v2.0.3</h3>
@@ -889,6 +900,8 @@ their skills.  Special thanks go out to:</p>
 
   <li>TTK-Bandit, for submitting a number of input patches adding many missing
   keys to the Win32 and X11 ports</li>
+
+  <li>yuriks, for reporting a bug in Win32 context creation</li>
 
   <li>All the unmentioned and anonymous contributors in the GLFW community, for
   bug reports, patches, feedback and encouragement</li>

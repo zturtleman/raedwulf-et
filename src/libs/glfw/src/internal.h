@@ -1,5 +1,5 @@
 //========================================================================
-// GLFW - An OpenGL framework
+// GLFW - An OpenGL library
 // Platform:    Any
 // API version: 3.0
 // WWW:         http://www.glfw.org/
@@ -57,6 +57,10 @@
 //------------------------------------------------------------------------
 
 #include "config.h"
+
+#include "../../include/GL/glfw3.h"
+#include "../../include/GL/glext.h"
+
 #include "platform.h"
 
 
@@ -95,6 +99,7 @@ struct _GLFWhints
     GLboolean   glForward;
     GLboolean   glDebug;
     int         glProfile;
+    int         glRobustness;
 };
 
 
@@ -115,6 +120,7 @@ struct _GLFWwndconfig
     GLboolean     glForward;
     GLboolean     glDebug;
     int           glProfile;
+    int           glRobustness;
     _GLFWwindow*  share;
 };
 
@@ -158,7 +164,6 @@ struct _GLFWwindow
     int       width, height;
     int       positionX, positionY;
     int       mode;            // GLFW_WINDOW or GLFW_FULLSCREEN
-    GLboolean sysKeysDisabled; // system keys disabled flag
     GLboolean windowNoResize;  // resize- and maximize gadgets disabled flag
     int       refreshRate;     // monitor refresh rate
     void*     userPointer;
@@ -167,6 +172,7 @@ struct _GLFWwindow
     GLboolean stickyKeys;
     GLboolean stickyMouseButtons;
     GLboolean keyRepeat;
+    GLboolean sysKeysDisabled; // system keys disabled flag
     int       mousePosX, mousePosY;
     int       scrollX, scrollY;
     char      mouseButton[GLFW_MOUSE_BUTTON_LAST + 1];
@@ -192,6 +198,7 @@ struct _GLFWwindow
     int       glMajor, glMinor, glRevision;
     GLboolean glForward, glDebug;
     int       glProfile;
+    int       glRobustness;
     PFNGLGETSTRINGIPROC GetStringi;
 
     // These are defined in the current port's platform.h
@@ -212,6 +219,7 @@ struct _GLFWlibrary
     _GLFWwindow*  activeWindow;
     _GLFWwindow*  cursorLockWindow;
 
+    GLFWerrorfun         errorCallback;
     GLFWwindowsizefun    windowSizeCallback;
     GLFWwindowclosefun   windowCloseCallback;
     GLFWwindowrefreshfun windowRefreshCallback;
@@ -222,6 +230,9 @@ struct _GLFWlibrary
     GLFWscrollfun        scrollCallback;
     GLFWkeyfun           keyCallback;
     GLFWcharfun          charCallback;
+
+    GLFWthreadmodel      threading;
+    GLFWallocator        allocator;
 
     GLFWgammaramp currentRamp;
     GLFWgammaramp originalRamp;
@@ -305,14 +316,18 @@ void* _glfwPlatformGetProcAddress(const char* procname);
 // Prototypes for platform independent internal functions
 //========================================================================
 
+// Memory management (init.c)
+void* _glfwMalloc(size_t size);
+void _glfwFree(void* ptr);
+
 // Fullscren management (fullscreen.c)
 void _glfwSplitBPP(int bpp, int* red, int* green, int* blue);
 
-// Error handling
-void _glfwSetError(int error);
+// Error handling (error.c)
+void _glfwSetError(int error, const char* description);
 
 // Window management (window.c)
-void _glfwClearWindowHints(void);
+void _glfwSetDefaultWindowHints(void);
 
 // Input handling (window.c)
 void _glfwInputKey(_GLFWwindow* window, int key, int action);
@@ -321,14 +336,13 @@ void _glfwInputScroll(_GLFWwindow* window, int x, int y);
 void _glfwInputMouseClick(_GLFWwindow* window, int button, int action);
 void _glfwInputWindowFocus(_GLFWwindow* window, GLboolean activated);
 
-// OpenGL extensions (glext.c)
-void _glfwParseGLVersion(int* major, int* minor, int* rev);
+// OpenGL context helpers (opengl.c)
 int _glfwStringInExtensionString(const char* string, const GLubyte* extensions);
-
-// Framebuffer configs
 const _GLFWfbconfig* _glfwChooseFBConfig(const _GLFWfbconfig* desired,
                                          const _GLFWfbconfig* alternatives,
                                          unsigned int count);
+GLboolean _glfwIsValidContextConfig(_GLFWwndconfig* wndconfig);
+GLboolean _glfwIsValidContext(_GLFWwindow* window, _GLFWwndconfig* wndconfig);
 
 
 #endif // _internal_h_

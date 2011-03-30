@@ -1,5 +1,5 @@
 //========================================================================
-// GLFW - An OpenGL framework
+// GLFW - An OpenGL library
 // Platform:    Any
 // API version: 3.0
 // WWW:         http://www.glfw.org/
@@ -48,7 +48,7 @@ GLFWAPI void glfwSetGammaFormula(float gamma, float blacklevel, float gain)
 
     if (!_glfwInitialized)
     {
-        _glfwSetError(GLFW_NOT_INITIALIZED);
+        _glfwSetError(GLFW_NOT_INITIALIZED, NULL);
         return;
     }
 
@@ -57,7 +57,7 @@ GLFWAPI void glfwSetGammaFormula(float gamma, float blacklevel, float gain)
         float value = (float) i / ((float) (size - 1));
 
         // Apply gamma
-        value = pow(value, 1.0f / gamma) * 65535.f + 0.5f;
+        value = pow(value, 1.0f/gamma) * 65535.f + 0.5f;
 
         // Apply gain
         value = gain * (value - 32767.5f) + 32767.5f;
@@ -89,7 +89,7 @@ GLFWAPI void glfwGetGammaRamp(GLFWgammaramp* ramp)
 {
     if (!_glfwInitialized)
     {
-        _glfwSetError(GLFW_NOT_INITIALIZED);
+        _glfwSetError(GLFW_NOT_INITIALIZED, NULL);
         return;
     }
 
@@ -105,7 +105,7 @@ GLFWAPI void glfwSetGammaRamp(const GLFWgammaramp* ramp)
 {
     if (!_glfwInitialized)
     {
-        _glfwSetError(GLFW_NOT_INITIALIZED);
+        _glfwSetError(GLFW_NOT_INITIALIZED, NULL);
         return;
     }
 

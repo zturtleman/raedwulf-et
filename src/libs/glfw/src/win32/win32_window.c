@@ -1,5 +1,5 @@
 //========================================================================
-// GLFW - An OpenGL framework
+// GLFW - An OpenGL library
 // Platform:    Win32/WGL
 // API version: 3.0
 // WWW:         http://www.glfw.org/
@@ -184,14 +184,14 @@ static _GLFWfbconfig* getFBConfigs(_GLFWwindow* window, unsigned int* found)
 
     if (!count)
     {
-        _glfwSetError(GLFW_OPENGL_UNAVAILABLE);
+        _glfwSetError(GLFW_OPENGL_UNAVAILABLE, "Win32/WGL: No pixel formats found");
         return NULL;
     }
 
-    result = (_GLFWfbconfig*) malloc(sizeof(_GLFWfbconfig) * count);
+    result = (_GLFWfbconfig*) _glfwMalloc(sizeof(_GLFWfbconfig) * count);
     if (!result)
     {
-        _glfwSetError(GLFW_OUT_OF_MEMORY);
+        _glfwSetError(GLFW_OUT_OF_MEMORY, "Win32/WGL: Failed to allocate _GLFWfbconfig array");
         return NULL;
     }
 
@@ -212,6 +212,13 @@ static _GLFWfbconfig* getFBConfigs(_GLFWwindow* window, unsigned int* found)
             // Only consider RGBA pixel formats
             if (getPixelFormatAttrib(window, i, WGL_PIXEL_TYPE_ARB) !=
                 WGL_TYPE_RGBA_ARB)
+            {
+                continue;
+            }
+
+            // Only consider "hardware-accelerated" pixel formats
+            if (getPixelFormatAttrib(window, i, WGL_ACCELERATION_ARB) ==
+                 WGL_NO_ACCELERATION_ARB)
             {
                 continue;
             }
@@ -316,7 +323,7 @@ static GLboolean createContext(_GLFWwindow* window,
                                int pixelFormat)
 {
     PIXELFORMATDESCRIPTOR pfd;
-    int flags, i = 0, attribs[7];
+    int i = 0, attribs[40];
     HGLRC share = NULL;
 
     if (wndconfig->share)
@@ -324,13 +331,13 @@ static GLboolean createContext(_GLFWwindow* window,
 
     if (!_glfw_DescribePixelFormat(window->WGL.DC, pixelFormat, sizeof(pfd), &pfd))
     {
-        _glfwSetError(GLFW_OPENGL_UNAVAILABLE);
+        _glfwSetError(GLFW_OPENGL_UNAVAILABLE, "Win32/WGL: Failed to retrieve PFD for selected pixel format");
         return GL_FALSE;
     }
 
     if (!_glfw_SetPixelFormat(window->WGL.DC, pixelFormat, &pfd))
     {
-        _glfwSetError(GLFW_OPENGL_UNAVAILABLE);
+        _glfwSetError(GLFW_OPENGL_UNAVAILABLE, "Win32/WGL: Failed to set selected pixel format");
         return GL_FALSE;
     }
 
@@ -348,9 +355,9 @@ static GLboolean createContext(_GLFWwindow* window,
             attribs[i++] = wndconfig->glMinor;
         }
 
-        if (wndconfig->glForward || wndconfig->glDebug)
+        if (wndconfig->glForward || wndconfig->glDebug || wndconfig->glRobustness)
         {
-            flags = 0;
+            int flags = 0;
 
             if (wndconfig->glForward)
                 flags |= WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
@@ -358,19 +365,58 @@ static GLboolean createContext(_GLFWwindow* window,
             if (wndconfig->glDebug)
                 flags |= WGL_CONTEXT_DEBUG_BIT_ARB;
 
+            if (wndconfig->glRobustness)
+                flags |= WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB;
+
             attribs[i++] = WGL_CONTEXT_FLAGS_ARB;
             attribs[i++] = flags;
         }
 
         if (wndconfig->glProfile)
         {
+            int flags = 0;
+
+            if (!window->WGL.has_WGL_ARB_create_context_profile)
+            {
+                _glfwSetError(GLFW_VERSION_UNAVAILABLE, "Win32/WGL: OpenGL profile requested but WGL_ARB_create_context_profile is unavailable");
+                return GL_FALSE;
+            }
+
+            if (wndconfig->glProfile == GLFW_OPENGL_ES2_PROFILE &&
+                !window->WGL.has_WGL_EXT_create_context_es2_profile)
+            {
+                _glfwSetError(GLFW_VERSION_UNAVAILABLE, "Win32/WGL: OpenGL ES 2.x profile requested but WGL_EXT_create_context_es2_profile is unavailable");
+                return GL_FALSE;
+            }
+
             if (wndconfig->glProfile == GLFW_OPENGL_CORE_PROFILE)
                 flags = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
-            else
+            else if (wndconfig->glProfile == GLFW_OPENGL_COMPAT_PROFILE)
                 flags = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+            else if (wndconfig->glProfile == GLFW_OPENGL_ES2_PROFILE)
+                flags = WGL_CONTEXT_ES2_PROFILE_BIT_EXT;
 
             attribs[i++] = WGL_CONTEXT_PROFILE_MASK_ARB;
             attribs[i++] = flags;
+        }
+
+        if (wndconfig->glRobustness)
+        {
+            int strategy;
+
+            if (!window->WGL.has_WGL_ARB_create_context_robustness)
+            {
+                _glfwSetError(GLFW_VERSION_UNAVAILABLE, "Win32/WGL: An OpenGL robustness strategy was requested but WGL_ARB_create_context_robustness is unavailable");
+                return GL_FALSE;
+            }
+
+            if (wndconfig->glRobustness == GLFW_OPENGL_NO_RESET_NOTIFICATION)
+                strategy = WGL_NO_RESET_NOTIFICATION_ARB;
+            else if (wndconfig->glRobustness == GLFW_OPENGL_LOSE_CONTEXT_ON_RESET)
+                strategy = WGL_LOSE_CONTEXT_ON_RESET_ARB;
+
+            attribs[i++] = WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB;
+            attribs[i++] = strategy;
         }
 
         attribs[i++] = 0;
@@ -380,7 +426,7 @@ static GLboolean createContext(_GLFWwindow* window,
                                                                   attribs);
         if (!window->WGL.context)
         {
-            _glfwSetError(GLFW_VERSION_UNAVAILABLE);
+            _glfwSetError(GLFW_VERSION_UNAVAILABLE, "Win32/WGL: Failed to create OpenGL context");
             return GL_FALSE;
         }
     }
@@ -389,7 +435,7 @@ static GLboolean createContext(_GLFWwindow* window,
         window->WGL.context = wglCreateContext(window->WGL.DC);
         if (!window->WGL.context)
         {
-            _glfwSetError(GLFW_PLATFORM_ERROR);
+            _glfwSetError(GLFW_PLATFORM_ERROR, "Win32/WGL: Failed to create OpenGL context");
             return GL_FALSE;
         }
 
@@ -397,7 +443,7 @@ static GLboolean createContext(_GLFWwindow* window,
         {
             if (!wglShareLists(share, window->WGL.context))
             {
-                _glfwSetError(GLFW_PLATFORM_ERROR);
+                _glfwSetError(GLFW_PLATFORM_ERROR, "Win32/WGL: Failed to enable sharing with specified OpenGL context");
                 return GL_FALSE;
             }
         }
@@ -417,11 +463,11 @@ static int translateKey(WPARAM wParam, LPARAM lParam)
     DWORD msg_time;
     DWORD scan_code;
 
-    // Check for numeric keypad keys
-    // Note: This way we always force "NumLock = ON", which at least
-    // enables GLFW users to detect numeric keypad keys
+    // Check for numeric keypad keys.
+    // Note: This way we always force "NumLock = ON", which is intentional
+    // since the returned key code should correspond to a physical
+    // location.
     int hiFlags = HIWORD(lParam);
-
     if (!(hiFlags & 0x100))
     {
         switch (MapVirtualKey(hiFlags & 0xFF, 1))
@@ -441,6 +487,7 @@ static int translateKey(WPARAM wParam, LPARAM lParam)
             case VK_SUBTRACT: return GLFW_KEY_KP_SUBTRACT;
             case VK_ADD:      return GLFW_KEY_KP_ADD;
             case VK_DELETE:   return GLFW_KEY_KP_DECIMAL;
+            default:          break;
         }
     }
 
@@ -455,9 +502,9 @@ static int translateKey(WPARAM wParam, LPARAM lParam)
             // right)
             scan_code = MapVirtualKey(VK_RSHIFT, 0);
             if (((lParam & 0x01ff0000) >> 16) == scan_code)
-                return GLFW_KEY_RSHIFT;
+                return GLFW_KEY_RIGHT_SHIFT;
 
-            return GLFW_KEY_LSHIFT;
+            return GLFW_KEY_LEFT_SHIFT;
         }
 
         // The CTRL keys require special handling
@@ -465,7 +512,7 @@ static int translateKey(WPARAM wParam, LPARAM lParam)
         {
             // Is this an extended key (i.e. right key)?
             if (lParam & 0x01000000)
-                return GLFW_KEY_RCTRL;
+                return GLFW_KEY_RIGHT_CONTROL;
 
             // Here is a trick: "Alt Gr" sends LCTRL, then RALT. We only
             // want the RALT message, so we try to see if the next message
@@ -482,12 +529,12 @@ static int translateKey(WPARAM wParam, LPARAM lParam)
                     {
                         // Next message is a RALT down message, which
                         // means that this is NOT a proper LCTRL message!
-                        return GLFW_KEY_UNKNOWN;
+                        return -1;
                     }
                 }
             }
 
-            return GLFW_KEY_LCTRL;
+            return GLFW_KEY_LEFT_CONTROL;
         }
 
         // The ALT keys require special handling
@@ -495,9 +542,9 @@ static int translateKey(WPARAM wParam, LPARAM lParam)
         {
             // Is this an extended key (i.e. right key)?
             if (lParam & 0x01000000)
-                return GLFW_KEY_RALT;
+                return GLFW_KEY_RIGHT_ALT;
 
-            return GLFW_KEY_LALT;
+            return GLFW_KEY_LEFT_ALT;
         }
 
         // The ENTER keys require special handling
@@ -510,16 +557,16 @@ static int translateKey(WPARAM wParam, LPARAM lParam)
             return GLFW_KEY_ENTER;
         }
 
-        // Special keys (non character keys)
-        case VK_ESCAPE:        return GLFW_KEY_ESC;
+        // Funcion keys (non-printable keys)
+        case VK_ESCAPE:        return GLFW_KEY_ESCAPE;
         case VK_TAB:           return GLFW_KEY_TAB;
         case VK_BACK:          return GLFW_KEY_BACKSPACE;
         case VK_HOME:          return GLFW_KEY_HOME;
         case VK_END:           return GLFW_KEY_END;
-        case VK_PRIOR:         return GLFW_KEY_PAGEUP;
-        case VK_NEXT:          return GLFW_KEY_PAGEDOWN;
+        case VK_PRIOR:         return GLFW_KEY_PAGE_UP;
+        case VK_NEXT:          return GLFW_KEY_PAGE_DOWN;
         case VK_INSERT:        return GLFW_KEY_INSERT;
-        case VK_DELETE:        return GLFW_KEY_DEL;
+        case VK_DELETE:        return GLFW_KEY_DELETE;
         case VK_LEFT:          return GLFW_KEY_LEFT;
         case VK_UP:            return GLFW_KEY_UP;
         case VK_RIGHT:         return GLFW_KEY_RIGHT;
@@ -548,7 +595,13 @@ static int translateKey(WPARAM wParam, LPARAM lParam)
         case VK_F22:           return GLFW_KEY_F22;
         case VK_F23:           return GLFW_KEY_F23;
         case VK_F24:           return GLFW_KEY_F24;
-        case VK_SPACE:         return GLFW_KEY_SPACE;
+        case VK_NUMLOCK:       return GLFW_KEY_NUM_LOCK;
+        case VK_CAPITAL:       return GLFW_KEY_CAPS_LOCK;
+        case VK_SCROLL:        return GLFW_KEY_SCROLL_LOCK;
+        case VK_PAUSE:         return GLFW_KEY_PAUSE;
+        case VK_LWIN:          return GLFW_KEY_LEFT_SUPER;
+        case VK_RWIN:          return GLFW_KEY_RIGHT_SUPER;
+        case VK_APPS:          return GLFW_KEY_MENU;
 
         // Numeric keypad
         case VK_NUMPAD0:       return GLFW_KEY_KP_0;
@@ -566,35 +619,63 @@ static int translateKey(WPARAM wParam, LPARAM lParam)
         case VK_SUBTRACT:      return GLFW_KEY_KP_SUBTRACT;
         case VK_ADD:           return GLFW_KEY_KP_ADD;
         case VK_DECIMAL:       return GLFW_KEY_KP_DECIMAL;
-        case VK_NUMLOCK:       return GLFW_KEY_KP_NUM_LOCK;
 
-        case VK_CAPITAL:       return GLFW_KEY_CAPS_LOCK;
-        case VK_SCROLL:        return GLFW_KEY_SCROLL_LOCK;
-        case VK_PAUSE:         return GLFW_KEY_PAUSE;
-
-        case VK_LWIN:          return GLFW_KEY_LSUPER;
-        case VK_RWIN:          return GLFW_KEY_RSUPER;
-        case VK_APPS:          return GLFW_KEY_MENU;
-
-        // The rest (should be printable keys)
-        default:
-        {
-            // Convert to printable character (ISO-8859-1 or Unicode)
-            wParam = MapVirtualKey((UINT) wParam, 2) & 0x0000FFFF;
-
-            // Make sure that the character is uppercase
-            wParam = (WPARAM) CharUpperW((LPWSTR) wParam);
-
-            // Valid ISO-8859-1 character?
-            if ((wParam >=  32 && wParam <= 126) ||
-                (wParam >= 160 && wParam <= 255))
-            {
-                return (int) wParam;
-            }
-
-            return GLFW_KEY_UNKNOWN;
-        }
+        // Printable keys are mapped according to US layout
+        case VK_SPACE:         return GLFW_KEY_SPACE;
+        case 0x30:             return GLFW_KEY_0;
+        case 0x31:             return GLFW_KEY_1;
+        case 0x32:             return GLFW_KEY_2;
+        case 0x33:             return GLFW_KEY_3;
+        case 0x34:             return GLFW_KEY_4;
+        case 0x35:             return GLFW_KEY_5;
+        case 0x36:             return GLFW_KEY_6;
+        case 0x37:             return GLFW_KEY_7;
+        case 0x38:             return GLFW_KEY_8;
+        case 0x39:             return GLFW_KEY_9;
+        case 0x41:             return GLFW_KEY_A;
+        case 0x42:             return GLFW_KEY_B;
+        case 0x43:             return GLFW_KEY_C;
+        case 0x44:             return GLFW_KEY_D;
+        case 0x45:             return GLFW_KEY_E;
+        case 0x46:             return GLFW_KEY_F;
+        case 0x47:             return GLFW_KEY_G;
+        case 0x48:             return GLFW_KEY_H;
+        case 0x49:             return GLFW_KEY_I;
+        case 0x4A:             return GLFW_KEY_J;
+        case 0x4B:             return GLFW_KEY_K;
+        case 0x4C:             return GLFW_KEY_L;
+        case 0x4D:             return GLFW_KEY_M;
+        case 0x4E:             return GLFW_KEY_N;
+        case 0x4F:             return GLFW_KEY_O;
+        case 0x50:             return GLFW_KEY_P;
+        case 0x51:             return GLFW_KEY_Q;
+        case 0x52:             return GLFW_KEY_R;
+        case 0x53:             return GLFW_KEY_S;
+        case 0x54:             return GLFW_KEY_T;
+        case 0x55:             return GLFW_KEY_U;
+        case 0x56:             return GLFW_KEY_V;
+        case 0x57:             return GLFW_KEY_W;
+        case 0x58:             return GLFW_KEY_X;
+        case 0x59:             return GLFW_KEY_Y;
+        case 0x5A:             return GLFW_KEY_Z;
+        case 0xBD:             return GLFW_KEY_MINUS;
+        case 0xBB:             return GLFW_KEY_EQUAL;
+        case 0xDB:             return GLFW_KEY_LEFT_BRACKET;
+        case 0xDD:             return GLFW_KEY_RIGHT_BRACKET;
+        case 0xDC:             return GLFW_KEY_BACKSLASH;
+        case 0xBA:             return GLFW_KEY_SEMICOLON;
+        case 0xDE:             return GLFW_KEY_APOSTROPHE;
+        case 0xC0:             return GLFW_KEY_GRAVE_ACCENT;
+        case 0xBC:             return GLFW_KEY_COMMA;
+        case 0xBE:             return GLFW_KEY_PERIOD;
+        case 0xBF:             return GLFW_KEY_SLASH;
+        case 0xDF:             return GLFW_KEY_WORLD_1;
+        case 0xE2:             return GLFW_KEY_WORLD_2;
+        default:               break;
     }
+
+    // No matching translation was found, so return -1
+    return -1;
 }
 
 
@@ -760,7 +841,7 @@ static LRESULT CALLBACK windowProc(HWND hWnd, UINT uMsg,
                 translateChar(window, (DWORD) wParam, (DWORD) lParam);
 
             return 0;
-          }
+        }
 
         case WM_KEYUP:
         case WM_SYSKEYUP:
@@ -768,8 +849,8 @@ static LRESULT CALLBACK windowProc(HWND hWnd, UINT uMsg,
             // Special trick: release both shift keys on SHIFT up event
             if (wParam == VK_SHIFT)
             {
-                _glfwInputKey(window, GLFW_KEY_LSHIFT, GLFW_RELEASE);
-                _glfwInputKey(window, GLFW_KEY_RSHIFT, GLFW_RELEASE);
+                _glfwInputKey(window, GLFW_KEY_LEFT_SHIFT, GLFW_RELEASE);
+                _glfwInputKey(window, GLFW_KEY_RIGHT_SHIFT, GLFW_RELEASE);
             }
             else
                 _glfwInputKey(window, translateKey(wParam, lParam), GLFW_RELEASE);
@@ -1004,10 +1085,13 @@ static void initWGLExtensions(_GLFWwindow* window)
 
     // This needs to include every extension used below except for
     // WGL_ARB_extensions_string and WGL_EXT_extensions_string
-    window->WGL.has_WGL_EXT_swap_control = GL_FALSE;
-    window->WGL.has_WGL_ARB_pixel_format = GL_FALSE;
     window->WGL.has_WGL_ARB_multisample = GL_FALSE;
     window->WGL.has_WGL_ARB_create_context = GL_FALSE;
+    window->WGL.has_WGL_ARB_create_context_profile = GL_FALSE;
+    window->WGL.has_WGL_EXT_create_context_es2_profile = GL_FALSE;
+    window->WGL.has_WGL_ARB_create_context_robustness = GL_FALSE;
+    window->WGL.has_WGL_EXT_swap_control = GL_FALSE;
+    window->WGL.has_WGL_ARB_pixel_format = GL_FALSE;
 
     window->WGL.GetExtensionsStringEXT = (PFNWGLGETEXTENSIONSSTRINGEXTPROC)
         wglGetProcAddress("wglGetExtensionsStringEXT");
@@ -1029,6 +1113,25 @@ static void initWGLExtensions(_GLFWwindow* window)
 
         if (window->WGL.CreateContextAttribsARB)
             window->WGL.has_WGL_ARB_create_context = GL_TRUE;
+    }
+
+    if (window->WGL.has_WGL_ARB_create_context)
+    {
+        if (_glfwPlatformExtensionSupported("WGL_ARB_create_context_profile"))
+            window->WGL.has_WGL_ARB_create_context_profile = GL_TRUE;
+    }
+
+    if (window->WGL.has_WGL_ARB_create_context &&
+        window->WGL.has_WGL_ARB_create_context_profile)
+    {
+        if (_glfwPlatformExtensionSupported("WGL_EXT_create_context_es2_profile"))
+            window->WGL.has_WGL_EXT_create_context_es2_profile = GL_TRUE;
+    }
+
+    if (window->WGL.has_WGL_ARB_create_context)
+    {
+        if (_glfwPlatformExtensionSupported("WGL_ARB_create_context_robustness"))
+            window->WGL.has_WGL_ARB_create_context_robustness = GL_TRUE;
     }
 
     if (_glfwPlatformExtensionSupported("WGL_EXT_swap_control"))
@@ -1082,7 +1185,7 @@ static ATOM registerWindowClass(void)
     classAtom = RegisterClass(&wc);
     if (!classAtom)
     {
-        _glfwSetError(GLFW_PLATFORM_ERROR);
+        _glfwSetError(GLFW_PLATFORM_ERROR, "Win32/WGL: Failed to register window class");
         return 0;
     }
 
@@ -1108,13 +1211,13 @@ static int choosePixelFormat(_GLFWwindow* window, const _GLFWfbconfig* fbconfig)
     closest = _glfwChooseFBConfig(fbconfig, fbconfigs, fbcount);
     if (!closest)
     {
-        free(fbconfigs);
+        _glfwFree(fbconfigs);
         return 0;
     }
 
     pixelFormat = (int) closest->platformID;
 
-    free(fbconfigs);
+    _glfwFree(fbconfigs);
     fbconfigs = NULL;
     closest = NULL;
 
@@ -1196,14 +1299,14 @@ static int createWindow(_GLFWwindow* window,
 
     if (!window->Win32.handle)
     {
-        _glfwSetError(GLFW_PLATFORM_ERROR);
+        _glfwSetError(GLFW_PLATFORM_ERROR, "Win32/WGL: Failed to create window");
         return GL_FALSE;
     }
 
     window->WGL.DC = GetDC(window->Win32.handle);
     if (!window->WGL.DC)
     {
-        _glfwSetError(GLFW_PLATFORM_ERROR);
+        _glfwSetError(GLFW_PLATFORM_ERROR, "Win32/WGL: Failed to retrieve DC for window");
         return GL_FALSE;
     }
 
@@ -1311,11 +1414,28 @@ int _glfwPlatformOpenWindow(_GLFWwindow* window,
     if (!createWindow(window, wndconfig, fbconfig))
         return GL_FALSE;
 
-    if (wndconfig->glMajor > 2)
+    if (wndconfig->glMajor != 1 || wndconfig->glMinor != 0)
+    {
+        if (window->WGL.has_WGL_ARB_create_context)
+            recreateContext = GL_TRUE;
+    }
+
+    if (wndconfig->glForward || wndconfig->glDebug)
     {
         if (!window->WGL.has_WGL_ARB_create_context)
         {
-            _glfwSetError(GLFW_VERSION_UNAVAILABLE);
+            _glfwSetError(GLFW_VERSION_UNAVAILABLE, "Win32/WGL: A forward compatible or debug OpenGL context requested but WGL_ARB_create_context is unavailable");
+            return GL_FALSE;
+        }
+
+        recreateContext = GL_TRUE;
+    }
+
+    if (wndconfig->glProfile)
+    {
+        if (!window->WGL.has_WGL_ARB_create_context_profile)
+        {
+            _glfwSetError(GLFW_VERSION_UNAVAILABLE, "Win32/WGL: OpenGL profile requested but WGL_ARB_create_context_profile is unavailable");
             return GL_FALSE;
         }
 
@@ -1503,31 +1623,6 @@ void _glfwPlatformRestoreWindow(_GLFWwindow* window)
 
 
 //========================================================================
-// Swap buffers (double-buffering)
-//========================================================================
-
-void _glfwPlatformSwapBuffers(void)
-{
-    _GLFWwindow* window = _glfwLibrary.currentWindow;
-
-    _glfw_SwapBuffers(window->WGL.DC);
-}
-
-
-//========================================================================
-// Set double buffering swap interval
-//========================================================================
-
-void _glfwPlatformSwapInterval(int interval)
-{
-    _GLFWwindow* window = _glfwLibrary.currentWindow;
-
-    if (window->WGL.has_WGL_EXT_swap_control)
-        window->WGL.SwapIntervalEXT(interval);
-}
-
-
-//========================================================================
 // Write back window parameters into GLFW window structure
 //========================================================================
 
@@ -1642,12 +1737,6 @@ void _glfwPlatformPollEvents(void)
     MSG msg;
     _GLFWwindow* window;
 
-    for (window = _glfwLibrary.windowListHead;  window;  window = window->next)
-    {
-        window->scrollX = 0;
-        window->scrollY = 0;
-    }
-
     window = _glfwLibrary.cursorLockWindow;
     if (window)
     {
@@ -1701,11 +1790,11 @@ void _glfwPlatformPollEvents(void)
 
         // See if this differs from our belief of what has happened
         // (we only have to check for lost key up events)
-        if (!lshift_down && window->key[GLFW_KEY_LSHIFT] == 1)
-            _glfwInputKey(window, GLFW_KEY_LSHIFT, GLFW_RELEASE);
+        if (!lshift_down && window->key[GLFW_KEY_LEFT_SHIFT] == 1)
+            _glfwInputKey(window, GLFW_KEY_LEFT_SHIFT, GLFW_RELEASE);
 
-        if (!rshift_down && window->key[GLFW_KEY_RSHIFT] == 1)
-            _glfwInputKey(window, GLFW_KEY_RSHIFT, GLFW_RELEASE);
+        if (!rshift_down && window->key[GLFW_KEY_RIGHT_SHIFT] == 1)
+            _glfwInputKey(window, GLFW_KEY_RIGHT_SHIFT, GLFW_RELEASE);
     }
 
     // Did we have mouse movement in locked cursor mode?

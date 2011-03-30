@@ -1,5 +1,5 @@
 //========================================================================
-// GLFW - An OpenGL framework
+// GLFW - An OpenGL library
 // Platform:    Win32/WGL
 // API version: 3.0
 // WWW:         http://www.glfw.org/
@@ -32,9 +32,6 @@
 #define _platform_h_
 
 
-// This is the Windows version of GLFW
-#define _GLFW_WIN32
-
 // We don't need all the fancy stuff
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
@@ -43,7 +40,6 @@
 #include <windows.h>
 #include <mmsystem.h>
 
-#include "../../include/GL/glfw3.h"
 #include "../../include/GL/wglext.h"
 
 
@@ -136,13 +132,6 @@ typedef struct tagKBDLLHOOKSTRUCT {
 #ifndef XBUTTON2
 #define XBUTTON2 2
 #endif
-
-
-#ifndef GL_VERSION_3_0
-
-typedef const GLubyte*  (APIENTRY *PFNGLGETSTRINGIPROC) (GLenum, GLuint);
-
-#endif /*GL_VERSION_3_0*/
 
 
 //========================================================================
@@ -241,6 +230,9 @@ typedef struct _GLFWcontextWGL
     GLboolean                           has_WGL_ARB_multisample;
     GLboolean                           has_WGL_ARB_pixel_format;
     GLboolean                           has_WGL_ARB_create_context;
+    GLboolean                           has_WGL_ARB_create_context_profile;
+    GLboolean                           has_WGL_EXT_create_context_es2_profile;
+    GLboolean                           has_WGL_ARB_create_context_robustness;
 } _GLFWcontextWGL;
 
 
