@@ -726,8 +726,10 @@ void IN_Init(void)
 	}
 	else
 	{
-		IN_DeactivateMouse();
 		mouseAvailable = qfalse;
+		glfwEnable(glfwWindow, GLFW_MOUSE_CURSOR);
+		mouseReset = qtrue;
+		mouseActive = qfalse;
 	}
 
 	IN_InitJoystick();
