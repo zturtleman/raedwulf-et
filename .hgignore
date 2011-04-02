@@ -1,0 +1,12 @@
+syntax: glob
+Makefile
+tags
+src/libs/glfw/src/config.h
+etmain/*.so
+etmain/*.pk3
+CMakeFiles/*
+CMakeCache.txt
+cmake_install.cmake
+et.*
+etded.*
+
