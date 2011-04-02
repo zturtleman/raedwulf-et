@@ -82,6 +82,8 @@ file(GLOB_RECURSE CGAME_SRC
 	"etmain/src/cgame/*.c")
 
 file(GLOB_RECURSE UI_SRC
+	"etmain/src/game/bg_misc.c"
+	"etmain/src/game/bg_campaign.c"
 	"etmain/src/ui/*.c")
 
 # Load packages, set definitions
