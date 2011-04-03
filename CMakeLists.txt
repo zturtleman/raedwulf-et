@@ -90,23 +90,22 @@ file(GLOB_RECURSE UI_SRC
 find_package(ZLIB REQUIRED)
 add_definitions(-DPRODUCT_VERSION="2.60e" -DBOTLIB)
 
-if (WIN32)
+if(WIN32)
 	add_definitions(-DWINVER=0x501)
 	set(OS_LIBRARIES ws2_32 psapi winmm)
 elseif(UNIX)
 	set(OS_LIBRARIES dl m)
 endif()
 
-# GLFW
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildGLFW.cmake)
-
-# GLEW
-file(GLOB_RECURSE GLEW_SRC
-	"src/libs/glew/src/*.c")
-set(GLEW_INCLUDE_DIR
-	"src/libs/glew/include")
-
 if(BUILD_CLIENT)
+	# GLEW
+	file(GLOB_RECURSE GLEW_SRC
+		"src/libs/glew/src/*.c")
+	set(GLEW_INCLUDE_DIR
+		"src/libs/glew/include")
+	# GLFW
+	include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildGLFW.cmake)
+	
 	find_package(SDL REQUIRED)
 	find_package(OpenGL REQUIRED)
 	find_package(JPEG REQUIRED)

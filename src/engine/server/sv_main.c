@@ -96,13 +96,6 @@ void SVC_GameCompleteStatus( netadr_t from );       // NERVE - SMF
 
 #define LL( x ) x = LittleLong( x )
 
-typedef struct {
-	netadr_t ip;
-	int time;
-} ipTime_t;
-
-ipTime_t 
-
 /*
 =============================================================================
 
