@@ -34,7 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 #	define Sys_LibraryError() "unknown"
 #else
 #include <dlfcn.h>
-#	define Sys_LoadLibrary(f) dlopen(f,RTLD_NOW)
+#	define Sys_LoadLibrary(f) dlopen(f,RTLD_NOW | RTLD_DEEPBIND)
 #	define Sys_UnloadLibrary(h) dlclose(h)
 #	define Sys_LoadFunction(h,fn) dlsym(h,fn)
 #	define Sys_LibraryError() dlerror()
