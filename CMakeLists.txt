@@ -97,6 +97,11 @@ elseif(UNIX)
 	set(OS_LIBRARIES dl m)
 endif()
 
+if(USE_CURL)
+	add_definitions(-DUSE_CURL)
+	find_package(CURL REQUIRED)
+endif()
+
 if(BUILD_CLIENT)
 	# GLEW
 	file(GLOB_RECURSE GLEW_SRC
@@ -116,11 +121,6 @@ if(BUILD_CLIENT)
 	elseif(USE_OPENAL)
 		add_definitions(-DUSE_OPENAL)
 		find_package(OpenAL REQUIRED)
-	endif()
-	
-	if(USE_CURL)
-		add_definitions(-DUSE_CURL)
-		find_package(CURL REQUIRED)
 	endif()
 endif()
 
