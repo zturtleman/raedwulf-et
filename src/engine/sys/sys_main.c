@@ -37,7 +37,9 @@ If you have questions concerning this license or the applicable additional terms
 #include <ctype.h>
 #include <errno.h>
 
+#if !DEDICATED && !BUILD_TTY_CLIENT
 #include <GL/glfw3.h>
+#endif
 
 #include "../../libs/cpuinfo/cpuinfo.h"
 
