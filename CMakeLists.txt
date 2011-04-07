@@ -42,6 +42,10 @@ option(BUILD_CLIENT
 	"Build the client executable" ON)
 option(BUILD_MOD
 	"Build the mod libraries" ON)
+
+option(BUILD_MOD_PK3
+	"Creates a mp_bin.pk3 file of the mod libraries" OFF)
+
 option(USE_CURL
 	"Enable auto-download support using Curl (client only)" ON)
 
@@ -179,6 +183,16 @@ if(BUILD_MOD)
 		PROPERTIES COMPILE_DEFINITIONS "UIDLL"
 		           PREFIX ""
 		           LIBRARY_OUTPUT_DIRECTORY "etmain")
+
+	if(BUILD_MOD_PK3)
+		add_custom_target(mod_pk3 ALL DEPENDS etmain/mp_bin.pk3)
+		add_custom_command(
+			OUTPUT etmain/mp_bin.pk3
+			COMMAND zip mp_bin.pk3 cgame.mp.${ARCH}${CMAKE_SHARED_LIBRARY_SUFFIX} ui.mp.${ARCH}${CMAKE_SHARED_LIBRARY_SUFFIX}
+			DEPENDS cgame.mp.${ARCH} ui.mp.${ARCH}
+			WORKING_DIRECTORY etmain/
+		)
+	endif()
 endif()
 
 #set_source_files_properties(
