@@ -33,6 +33,26 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "snd_local.h" // fretn
 
+#ifdef USE_MUMBLE
+#include "libmumblelink.h"
+#endif
+
+#ifdef USE_MUMBLE
+cvar_t	*cl_useMumble;
+cvar_t	*cl_mumbleScale;
+#endif
+
+#ifdef USE_VOIP
+cvar_t	*cl_voipUseVAD;
+cvar_t	*cl_voipVADThreshold;
+cvar_t	*cl_voipSend;
+cvar_t	*cl_voipSendTarget;
+cvar_t	*cl_voipGainDuringCapture;
+cvar_t	*cl_voipCaptureMult;
+cvar_t	*cl_voipShowMeter;
+cvar_t	*cl_voip;
+#endif
+
 cvar_t  *cl_wavefilerecord;
 cvar_t  *cl_nodelta;
 cvar_t  *cl_debugMove;
@@ -194,6 +214,304 @@ void CL_DoPurgeCache( void ) {
 
 	re.purgeCache();
 }
+
+#ifdef USE_MUMBLE
+static
+void CL_UpdateMumble(void)
+{
+	vec3_t pos, forward, up;
+	float scale = cl_mumbleScale->value;
+	float tmp;
+	
+	if(!cl_useMumble->integer)
+		return;
+
+	// !!! FIXME: not sure if this is even close to correct.
+	AngleVectors( cl.snap.ps.viewangles, forward, NULL, up);
+
+	pos[0] = cl.snap.ps.origin[0] * scale;
+	pos[1] = cl.snap.ps.origin[2] * scale;
+	pos[2] = cl.snap.ps.origin[1] * scale;
+
+	tmp = forward[1];
+	forward[1] = forward[2];
+	forward[2] = tmp;
+
+	tmp = up[1];
+	up[1] = up[2];
+	up[2] = tmp;
+
+	if(cl_useMumble->integer > 1) {
+		fprintf(stderr, "%f %f %f, %f %f %f, %f %f %f\n",
+			pos[0], pos[1], pos[2],
+			forward[0], forward[1], forward[2],
+			up[0], up[1], up[2]);
+	}
+
+	mumble_update_coordinates(pos, forward, up);
+}
+#endif
+
+#ifdef USE_VOIP
+static
+void CL_UpdateVoipIgnore(const char *idstr, qboolean ignore)
+{
+	if ((*idstr >= '0') && (*idstr <= '9')) {
+		const int id = atoi(idstr);
+		if ((id >= 0) && (id < MAX_CLIENTS)) {
+			clc.voipIgnore[id] = ignore;
+			CL_AddReliableCommand(va("voip %s %d",
+			                         ignore ? "ignore" : "unignore", id));
+			Com_Printf("VoIP: %s ignoring player #%d\n",
+			            ignore ? "Now" : "No longer", id);
+			return;
+		}
+	}
+	Com_Printf("VoIP: invalid player ID#\n");
+}
+
+static
+void CL_UpdateVoipGain(const char *idstr, float gain)
+{
+	if ((*idstr >= '0') && (*idstr <= '9')) {
+		const int id = atoi(idstr);
+		if (gain < 0.0f)
+			gain = 0.0f;
+		if ((id >= 0) && (id < MAX_CLIENTS)) {
+			clc.voipGain[id] = gain;
+			Com_Printf("VoIP: player #%d gain now set to %f\n", id, gain);
+		}
+	}
+}
+
+void CL_Voip_f( void )
+{
+	const char *cmd = Cmd_Argv(1);
+	const char *reason = NULL;
+
+	if (cls.state != CA_ACTIVE)
+		reason = "Not connected to a server";
+	else if (!clc.speexInitialized)
+		reason = "Speex not initialized";
+	else if (!cl_connectedToVoipServer)
+		reason = "Server doesn't support VoIP";
+	else if ( Cvar_VariableValue( "g_gametype" ) == GT_SINGLE_PLAYER || Cvar_VariableValue("ui_singlePlayerActive"))
+		reason = "running in single-player mode";
+
+	if (reason != NULL) {
+		Com_Printf("VoIP: command ignored: %s\n", reason);
+		return;
+	}
+
+	if (strcmp(cmd, "ignore") == 0) {
+		CL_UpdateVoipIgnore(Cmd_Argv(2), qtrue);
+	} else if (strcmp(cmd, "unignore") == 0) {
+		CL_UpdateVoipIgnore(Cmd_Argv(2), qfalse);
+	} else if (strcmp(cmd, "gain") == 0) {
+		if (Cmd_Argc() > 3) {
+			CL_UpdateVoipGain(Cmd_Argv(2), atof(Cmd_Argv(3)));
+		} else if (Q_isanumber(Cmd_Argv(2))) {
+			int id = atoi(Cmd_Argv(2));
+			if (id >= 0 && id < MAX_CLIENTS) {
+				Com_Printf("VoIP: current gain for player #%d "
+					"is %f\n", id, clc.voipGain[id]);
+			} else {
+				Com_Printf("VoIP: invalid player ID#\n");
+			}
+		} else {
+			Com_Printf("usage: voip gain <playerID#> [value]\n");
+		}
+	} else if (strcmp(cmd, "muteall") == 0) {
+		Com_Printf("VoIP: muting incoming voice\n");
+		CL_AddReliableCommand("voip muteall");
+		clc.voipMuteAll = qtrue;
+	} else if (strcmp(cmd, "unmuteall") == 0) {
+		Com_Printf("VoIP: unmuting incoming voice\n");
+		CL_AddReliableCommand("voip unmuteall");
+		clc.voipMuteAll = qfalse;
+	} else {
+		Com_Printf("usage: voip [un]ignore <playerID#>\n"
+		           "       voip [un]muteall\n"
+		           "       voip gain <playerID#> [value]\n");
+	}
+}
+
+
+static
+void CL_VoipNewGeneration(void)
+{
+	// don't have a zero generation so new clients won't match, and don't
+	//  wrap to negative so MSG_ReadLong() doesn't "fail."
+	clc.voipOutgoingGeneration++;
+	if (clc.voipOutgoingGeneration <= 0)
+		clc.voipOutgoingGeneration = 1;
+	clc.voipPower = 0.0f;
+	clc.voipOutgoingSequence = 0;
+}
+
+/*
+===============
+CL_CaptureVoip
+
+Record more audio from the hardware if required and encode it into Speex
+ data for later transmission.
+===============
+*/
+static
+void CL_CaptureVoip(void)
+{
+	const float audioMult = cl_voipCaptureMult->value;
+	const qboolean useVad = (cl_voipUseVAD->integer != 0);
+	qboolean initialFrame = qfalse;
+	qboolean finalFrame = qfalse;
+
+#if USE_MUMBLE
+	// if we're using Mumble, don't try to handle VoIP transmission ourselves.
+	if (cl_useMumble->integer)
+		return;
+#endif
+
+	if (!clc.speexInitialized)
+		return;  // just in case this gets called at a bad time.
+
+	if (clc.voipOutgoingDataSize > 0)
+		return;  // packet is pending transmission, don't record more yet.
+
+	if (cl_voipUseVAD->modified) {
+		Cvar_Set("cl_voipSend", (useVad) ? "1" : "0");
+		cl_voipUseVAD->modified = qfalse;
+	}
+
+	if ((useVad) && (!cl_voipSend->integer))
+		Cvar_Set("cl_voipSend", "1");  // lots of things reset this.
+
+	if (cl_voipSend->modified) {
+		qboolean dontCapture = qfalse;
+		if (cls.state != CA_ACTIVE)
+			dontCapture = qtrue;  // not connected to a server.
+		else if (!cl_connectedToVoipServer)
+			dontCapture = qtrue;  // server doesn't support VoIP.
+		else if (clc.demoplaying)
+			dontCapture = qtrue;  // playing back a demo.
+		else if ( cl_voip->integer == 0 )
+			dontCapture = qtrue;  // client has VoIP support disabled.
+		else if ( audioMult == 0.0f )
+			dontCapture = qtrue;  // basically silenced incoming audio.
+
+		cl_voipSend->modified = qfalse;
+
+		if (dontCapture) {
+			cl_voipSend->integer = 0;
+			return;
+		}
+
+		if (cl_voipSend->integer) {
+			initialFrame = qtrue;
+		} else {
+			finalFrame = qtrue;
+		}
+	}
+
+	// try to get more audio data from the sound card...
+
+	if (initialFrame) {
+		float gain = cl_voipGainDuringCapture->value;
+		if (gain < 0.0f) gain = 0.0f; else if (gain >= 1.0f) gain = 1.0f;
+		S_MasterGain(cl_voipGainDuringCapture->value);
+		S_StartCapture();
+		CL_VoipNewGeneration();
+	}
+
+	if ((cl_voipSend->integer) || (finalFrame)) { // user wants to capture audio?
+		int samples = S_AvailableCaptureSamples();
+		const int mult = (finalFrame) ? 1 : 12; // 12 == 240ms of audio.
+
+		// enough data buffered in audio hardware to process yet?
+		if (samples >= (clc.speexFrameSize * mult)) {
+			// audio capture is always MONO16 (and that's what speex wants!).
+			//  2048 will cover 12 uncompressed frames in narrowband mode.
+			static int16_t sampbuffer[2048];
+			float voipPower = 0.0f;
+			int speexFrames = 0;
+			int wpos = 0;
+			int pos = 0;
+
+			if (samples > (clc.speexFrameSize * 12))
+				samples = (clc.speexFrameSize * 12);
+
+			// !!! FIXME: maybe separate recording from encoding, so voipPower
+			// !!! FIXME:  updates faster than 4Hz?
+
+			samples -= samples % clc.speexFrameSize;
+			S_Capture(samples, (byte *) sampbuffer);  // grab from audio card.
+
+			// this will probably generate multiple speex packets each time.
+			while (samples > 0) {
+				int16_t *sampptr = &sampbuffer[pos];
+				int i, bytes;
+
+				// preprocess samples to remove noise...
+				speex_preprocess_run(clc.speexPreprocessor, sampptr);
+
+				// check the "power" of this packet...
+				for (i = 0; i < clc.speexFrameSize; i++) {
+					const float flsamp = (float) sampptr[i];
+					const float s = fabs(flsamp);
+					voipPower += s * s;
+					sampptr[i] = (int16_t) ((flsamp) * audioMult);
+				}
+
+				// encode raw audio samples into Speex data...
+				speex_bits_reset(&clc.speexEncoderBits);
+				speex_encode_int(clc.speexEncoder, sampptr,
+				                 &clc.speexEncoderBits);
+				bytes = speex_bits_write(&clc.speexEncoderBits,
+				                         (char *) &clc.voipOutgoingData[wpos+1],
+				                         sizeof (clc.voipOutgoingData) - (wpos+1));
+				assert((bytes > 0) && (bytes < 256));
+				clc.voipOutgoingData[wpos] = (byte) bytes;
+				wpos += bytes + 1;
+
+				// look at the data for the next packet...
+				pos += clc.speexFrameSize;
+				samples -= clc.speexFrameSize;
+				speexFrames++;
+			}
+
+			clc.voipPower = (voipPower / (32768.0f * 32768.0f *
+			                 ((float) (clc.speexFrameSize * speexFrames)))) *
+			                 100.0f;
+
+			if ((useVad) && (clc.voipPower < cl_voipVADThreshold->value)) {
+				CL_VoipNewGeneration();  // no "talk" for at least 1/4 second.
+			} else {
+				clc.voipOutgoingDataSize = wpos;
+				clc.voipOutgoingDataFrames = speexFrames;
+
+				Com_DPrintf("VoIP: Send %d frames, %d bytes, %f power\n",
+				            speexFrames, wpos, clc.voipPower);
+
+				#if 0
+				static FILE *encio = NULL;
+				if (encio == NULL) encio = fopen("voip-outgoing-encoded.bin", "wb");
+				if (encio != NULL) { fwrite(clc.voipOutgoingData, wpos, 1, encio); fflush(encio); }
+				static FILE *decio = NULL;
+				if (decio == NULL) decio = fopen("voip-outgoing-decoded.bin", "wb");
+				if (decio != NULL) { fwrite(sampbuffer, speexFrames * clc.speexFrameSize * 2, 1, decio); fflush(decio); }
+				#endif
+			}
+		}
+	}
+
+	// User requested we stop recording, and we've now processed the last of
+	//  any previously-buffered data. Pause the capture device, etc.
+	if (finalFrame) {
+		S_StopCapture();
+		S_MasterGain(1.0f);
+		clc.voipPower = 0.0f;  // force this value so it doesn't linger.
+	}
+}
+#endif
 
 /*
 =======================================================================
@@ -967,6 +1285,36 @@ void CL_Disconnect( qboolean showMainMenu ) {
 		autoupdateFilename[0] = '\0';
 	}
 
+#ifdef USE_MUMBLE
+	if (cl_useMumble->integer && mumble_islinked()) {
+		Com_Printf("Mumble: Unlinking from Mumble application\n");
+		mumble_unlink();
+	}
+#endif
+
+#ifdef USE_VOIP
+	if (cl_voipSend->integer) {
+		int tmp = cl_voipUseVAD->integer;
+		cl_voipUseVAD->integer = 0;  // disable this for a moment.
+		clc.voipOutgoingDataSize = 0;  // dump any pending VoIP transmission.
+		Cvar_Set("cl_voipSend", "0");
+		CL_CaptureVoip();  // clean up any state...
+		cl_voipUseVAD->integer = tmp;
+	}
+
+	if (clc.speexInitialized) {
+		int i;
+		speex_bits_destroy(&clc.speexEncoderBits);
+		speex_encoder_destroy(clc.speexEncoder);
+		speex_preprocess_state_destroy(clc.speexPreprocessor);
+		for (i = 0; i < MAX_CLIENTS; i++) {
+			speex_bits_destroy(&clc.speexDecoderBits[i]);
+			speex_decoder_destroy(clc.speexDecoder[i]);
+		}
+	}
+	Cmd_RemoveCommand ("voip");
+#endif
+	
 	if ( clc.demofile ) {
 		FS_FCloseFile( clc.demofile );
 		clc.demofile = 0;
@@ -1003,6 +1351,11 @@ void CL_Disconnect( qboolean showMainMenu ) {
 	// not connected to a pure server anymore
 	cl_connectedToPureServer = qfalse;
 
+#ifdef USE_VOIP
+	// not connected to voip server anymore.
+	cl_connectedToVoipServer = qfalse;
+#endif
+	
 	// show_bug.cgi?id=589
 	// don't try a restart if uivm is NULL, as we might be in the middle of a restart already
 	if ( uivm && cls.state > CA_DISCONNECTED ) {
@@ -2679,6 +3032,14 @@ void CL_Frame( int msec ) {
 	// update the sound
 	S_Update();
 
+#ifdef USE_VOIP
+	CL_CaptureVoip();
+#endif
+
+#ifdef USE_MUMBLE
+	CL_UpdateMumble();
+#endif
+	
 	// advance local effects for next frame
 	SCR_RunCinematic();
 
@@ -3389,6 +3750,37 @@ void CL_Init( void ) {
 
 	Cvar_Get( "password", "", CVAR_USERINFO );
 	Cvar_Get( "cg_predictItems", "1", CVAR_ARCHIVE );
+
+#ifdef USE_MUMBLE
+	cl_useMumble = Cvar_Get ("cl_useMumble", "0", CVAR_ARCHIVE | CVAR_LATCH);
+	cl_mumbleScale = Cvar_Get ("cl_mumbleScale", "0.0254", CVAR_ARCHIVE);
+#endif
+
+#ifdef USE_VOIP
+	cl_voipSend = Cvar_Get ("cl_voipSend", "0", 0);
+	cl_voipSendTarget = Cvar_Get ("cl_voipSendTarget", "all", 0);
+	cl_voipGainDuringCapture = Cvar_Get ("cl_voipGainDuringCapture", "0.2", CVAR_ARCHIVE);
+	cl_voipCaptureMult = Cvar_Get ("cl_voipCaptureMult", "2.0", CVAR_ARCHIVE);
+	cl_voipUseVAD = Cvar_Get ("cl_voipUseVAD", "0", CVAR_ARCHIVE);
+	cl_voipVADThreshold = Cvar_Get ("cl_voipVADThreshold", "0.25", CVAR_ARCHIVE);
+	cl_voipShowMeter = Cvar_Get ("cl_voipShowMeter", "1", CVAR_ARCHIVE);
+
+	// This is a protocol version number.
+	cl_voip = Cvar_Get ("cl_voip", "1", CVAR_USERINFO | CVAR_ARCHIVE | CVAR_LATCH);
+	Cvar_CheckRange( cl_voip, 0, 1, qtrue );
+
+	// If your data rate is too low, you'll get Connection Interrupted warnings
+	//  when VoIP packets arrive, even if you have a broadband connection.
+	//  This might work on rates lower than 25000, but for safety's sake, we'll
+	//  just demand it. Who doesn't have at least a DSL line now, anyhow? If
+	//  you don't, you don't need VoIP.  :)
+	if ((cl_voip->integer) && (Cvar_VariableIntegerValue("rate") < 25000)) {
+		Com_Printf(S_COLOR_YELLOW "Your network rate is too slow for VoIP.\n");
+		Com_Printf("Set 'Data Rate' to 'LAN/Cable/xDSL' in 'Setup/System/Network' and restart.\n");
+		Com_Printf("Until then, VoIP is disabled.\n");
+		Cvar_Set("cl_voip", "0");
+	}
+#endif
 
 //----(SA) added
 	Cvar_Get( "cg_autoactivate", "1", CVAR_ARCHIVE );

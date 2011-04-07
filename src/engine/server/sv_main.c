@@ -29,6 +29,10 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "server.h"
 
+#ifdef USE_VOIP
+cvar_t *sv_voip;
+#endif
+
 serverStatic_t svs;                 // persistant server info
 server_t sv;                        // local server
 vm_t            *gvm = NULL;                // game virtual machine // bk001212 init
@@ -626,6 +630,12 @@ void SVC_Info( netadr_t from ) {
 	//Info_SetValueForKey( infostring, "gametype", va("%i", sv_gametype->integer ) );
 	Info_SetValueForKey( infostring, "gametype", Cvar_VariableString( "g_gametype" ) );
 	Info_SetValueForKey( infostring, "pure", va( "%i", sv_pure->integer ) );
+
+#ifdef USE_VOIP
+	if (sv_voip->integer) {
+		Info_SetValueForKey( infostring, "voip", va("%i", sv_voip->integer ) );
+	}
+#endif
 
 	if ( sv_minPing->integer ) {
 		Info_SetValueForKey( infostring, "minPing", va( "%i", sv_minPing->integer ) );

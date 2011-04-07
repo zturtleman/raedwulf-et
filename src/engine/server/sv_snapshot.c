@@ -748,7 +748,11 @@ void SV_SendClientIdle( client_t *client ) {
 
 	// Add any download data if the client is downloading
 	SV_WriteDownloadToClient( client, &msg );
-
+	
+#ifdef USE_VOIP
+	SV_WriteVoipToClient( client, &msg );
+#endif
+	
 	// check for overflow
 	if ( msg.overflowed ) {
 		Com_Printf( "WARNING: msg overflowed for %s\n", client->name );

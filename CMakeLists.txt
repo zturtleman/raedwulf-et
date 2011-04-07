@@ -52,6 +52,12 @@ option(USE_CURL
 option(USE_CODEC_VORBIS
 	"Enabled vorbis OGG support (client only)" OFF)
 
+option(USE_MUMBLE
+	"Enable mumble support (client only)" ON)
+
+option(USE_VOIP
+	"Enable integrated VOIP support (client + server)" ON)
+
 if(NOT BUILD_SERVER AND NOT BUILD_CLIENT)
 	message(FATAL_ERROR
 		"Nothing to build")
@@ -113,6 +119,13 @@ if(USE_CURL)
 	find_package(CURL REQUIRED)
 endif()
 
+# Check for integrated VOIP (uses speex library)
+if(USE_VOIP)
+	add_definitions(-DUSE_VOIP)
+	find_package(Speex REQUIRED)
+	find_package(SpeexDSP REQUIRED)
+endif()
+
 if(BUILD_CLIENT)
 	# GLEW
 	file(GLOB_RECURSE GLEW_SRC
@@ -139,6 +152,10 @@ if(BUILD_CLIENT)
 
 		find_package(OggVorbis REQUIRED Ogg Vorbis Vorbisfile)
 	endif()
+
+	if(USE_MUMBLE)
+		add_definitions(-DUSE_MUMBLE)
+	endif()
 endif()
 
 if(BUILD_SERVER)
@@ -146,10 +163,14 @@ if(BUILD_SERVER)
 	include_directories(
 		${ZLIB_INCLUDE_DIRS}
 		${SDL_INCLUDE_DIR}
-		${CURL_INCLUDE_DIRS})
+		${CURL_INCLUDE_DIRS}
+		${Speex_INCLUDE_DIR}
+		${SPEEXDSP_INCLUDE_DIR})
 	target_link_libraries(etded.${ARCH}
 		${ZLIB_LIBRARIES}
 		${CURL_LIBRARIES}
+		${Speex_LIBRARIES}
+		${SPEEXDSP_LIBRARY}
 		${OS_LIBRARIES})
 	set_target_properties(etded.${ARCH}
 		PROPERTIES COMPILE_DEFINITIONS "DEDICATED")
@@ -164,6 +185,8 @@ if(BUILD_CLIENT)
 		${JPEG_INCLUDE_DIR}
 		${OPENAL_INCLUDE_DIR}
 		${CURL_INCLUDE_DIRS}
+		${Speex_INCLUDE_DIR}
+		${SPEEXDSP_INCLUDE_DIR}
 		${GLFW_INCLUDE_DIRS})
 	target_link_libraries(et.${ARCH}
 		${ZLIB_LIBRARIES}
@@ -172,6 +195,8 @@ if(BUILD_CLIENT)
 		${JPEG_LIBRARIES}
 		${OPENAL_LIBRARY}
 		${CURL_LIBRARIES}
+		${Speex_LIBRARIES}
+		${SPEEXDSP_LIBRARY}
 		${OGG_LIBRARY}
 		${VORBIS_LIBRARY}
 		${VORBISFILE_LIBRARY}

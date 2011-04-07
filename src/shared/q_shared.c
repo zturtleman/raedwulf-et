@@ -912,6 +912,19 @@ int Q_isforfilename( int c ) {
 	return ( 0 );
 }
 
+qboolean Q_isanumber( const char *s )
+{
+	char *p;
+	double d;
+
+	if( *s == '\0' )
+		return qfalse;
+
+	d = strtod( s, &p );
+
+	return *p == '\0';
+}
+
 char* Q_strrchr( const char* string, int c ) {
 	char cc = c;
 	char *s;

@@ -49,6 +49,18 @@ If you have questions concerning this license or the applicable additional terms
 
 #define MAX_BPS_WINDOW      20          // NERVE - SMF - net debugging
 
+#ifdef USE_VOIP
+typedef struct voipServerPacket_s
+{
+	int generation;
+	int sequence;
+	int frames;
+	int len;
+	int sender;
+	byte data[1024];
+} voipServerPacket_t;
+#endif
+
 typedef struct svEntity_s {
 	struct worldSector_s *worldSector;
 	struct svEntity_s *nextEntityInWorldSector;
@@ -217,6 +229,14 @@ typedef struct client_s {
 	//%	netchan_buffer_t **netchan_end_queue;
 	netchan_buffer_t *netchan_end_queue;
 
+#ifdef USE_VOIP
+	qboolean hasVoip;
+	qboolean muteAllVoip;
+	qboolean ignoreVoipFromClient[MAX_CLIENTS];
+	voipServerPacket_t voipPacket[64]; // !!! FIXME: WAY too much memory!
+	int queuedVoipPackets;
+#endif
+	
 	//bani
 	int downloadnotify;
 } client_t;
@@ -352,6 +372,10 @@ extern cvar_t *sv_packetdelay;
 //fretn
 extern cvar_t *sv_fullmsg;
 
+#ifdef USE_VOIP
+extern	cvar_t	*sv_voip;
+#endif
+
 //===========================================================
 
 //
@@ -411,6 +435,10 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK, qb
 void SV_ClientThink( client_t *cl, usercmd_t *cmd );
 
 void SV_WriteDownloadToClient( client_t *cl, msg_t *msg );
+
+#ifdef USE_VOIP
+void SV_WriteVoipToClient( client_t *cl, msg_t *msg );
+#endif
 
 //
 // sv_ccmds.c

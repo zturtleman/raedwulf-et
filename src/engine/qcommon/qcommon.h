@@ -342,7 +342,12 @@ enum svc_ops_e {
 	svc_serverCommand,          // [string] to be executed by client game module
 	svc_download,               // [short] size [size bytes]
 	svc_snapshot,
-	svc_EOF
+	svc_EOF,
+
+	// svc_extension follows a svc_EOF, followed by another svc_* ...
+	//  this keeps legacy clients compatible.
+	svc_extension,
+	svc_voip     // not wrapped in USE_VOIP, so this value is reserved.
 };
 
 
@@ -355,7 +360,12 @@ enum clc_ops_e {
 	clc_move,               // [[usercmd_t]
 	clc_moveNoDelta,        // [[usercmd_t]
 	clc_clientCommand,      // [string] message
-	clc_EOF
+	clc_EOF,
+
+	// clc_extension follows a clc_EOF, followed by another clc_* ...
+	//  this keeps legacy servers compatible.
+	clc_extension,
+	clc_voip,   // not wrapped in USE_VOIP, so this value is reserved.	
 };
 
 /*
@@ -578,6 +588,7 @@ char    *Cvar_InfoString_Big( int bit );
 // returns an info string containing all the cvars that have the given bit set
 // in their flags ( CVAR_USERINFO, CVAR_SERVERINFO, CVAR_SYSTEMINFO, etc )
 void    Cvar_InfoStringBuffer( int bit, char *buff, int buffsize );
+void    Cvar_CheckRange( cvar_t *cv, float minVal, float maxVal, qboolean shouldBeIntegral );
 
 void    Cvar_Restart_f( void );
 

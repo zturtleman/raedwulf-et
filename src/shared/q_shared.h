@@ -344,6 +344,8 @@ typedef int clipHandle_t;
 #define MAX_QINT            0x7fffffff
 #define MIN_QINT            ( -MAX_QINT - 1 )
 
+#define ARRAY_LEN(x)			(sizeof(x) / sizeof(*(x)))
+
 // TTimo gcc: was missing, added from Q3 source
 #ifndef max
 #define max( x, y ) ( ( ( x ) > ( y ) ) ? ( x ) : ( y ) )
@@ -876,6 +878,7 @@ int Q_isalpha( int c );
 int Q_isnumeric( int c );
 int Q_isalphanumeric( int c );
 int Q_isforfilename( int c );
+qboolean Q_isanumber( const char *s );
 
 // portable case insensitive compare
 int     Q_stricmp( const char *s1, const char *s2 );
@@ -1006,6 +1009,10 @@ typedef struct cvar_s {
 	int modificationCount;          // incremented each time the cvar is changed
 	float value;                    // atof( string )
 	int integer;                    // atoi( string )
+	qboolean	validate;
+	qboolean	integral;
+	float			min;
+	float			max;
 	struct cvar_s *next;
 	struct cvar_s *hashNext;
 } cvar_t;

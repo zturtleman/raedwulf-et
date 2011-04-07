@@ -37,6 +37,11 @@ If you have questions concerning this license or the applicable additional terms
 #include "../../shared/cg_public.h"
 #include "../../../etmain/src/game/bg_public.h" // FIXME
 
+#ifdef USE_VOIP
+#include "speex/speex.h"
+#include "speex/speex_preprocess.h"
+#endif
+
 #define RETRANSMIT_TIMEOUT  3000    // time between connection packet retransmits
 
 #define LIMBOCHAT_WIDTH     140     // NERVE - SMF - NOTE TTimo buffer size indicator, not related to screen bbox
@@ -251,6 +256,36 @@ typedef struct {
 	int timeDemoStart;              // cls.realtime before first frame
 	int timeDemoBaseTime;           // each frame will be at this time + frameNum * 50
 
+#ifdef USE_VOIP
+	qboolean speexInitialized;
+	int speexFrameSize;
+	int speexSampleRate;
+
+	// incoming data...
+	// !!! FIXME: convert from parallel arrays to array of a struct.
+	SpeexBits speexDecoderBits[MAX_CLIENTS];
+	void *speexDecoder[MAX_CLIENTS];
+	byte voipIncomingGeneration[MAX_CLIENTS];
+	int voipIncomingSequence[MAX_CLIENTS];
+	float voipGain[MAX_CLIENTS];
+	qboolean voipIgnore[MAX_CLIENTS];
+	qboolean voipMuteAll;
+
+	// outgoing data...
+	int voipTarget1;  // these three ints make up a bit mask of 92 bits.
+	int voipTarget2;  //  the bits say who a VoIP pack is addressed to:
+	int voipTarget3;  //  (1 << clientnum). See cl_voipSendTarget cvar.
+	SpeexPreprocessState *speexPreprocessor;
+	SpeexBits speexEncoderBits;
+	void *speexEncoder;
+	int voipOutgoingDataSize;
+	int voipOutgoingDataFrames;
+	int voipOutgoingSequence;
+	byte voipOutgoingGeneration;
+	byte voipOutgoingData[1024];
+	float voipPower;
+#endif
+	
 	// big stuff at end of structure so most offsets are 15 bits or less
 	netchan_t netchan;
 } clientConnection_t;
@@ -439,6 +474,25 @@ extern cvar_t  *cl_defaultProfile;
 
 extern cvar_t  *cl_consoleKeys;
 
+#ifdef USE_MUMBLE
+extern	cvar_t	*cl_useMumble;
+extern	cvar_t	*cl_mumbleScale;
+#endif
+
+#ifdef USE_VOIP
+// cl_voipSendTarget is a string: "all" to broadcast to everyone, "none" to
+//  send to no one, or a comma-separated list of client numbers:
+//  "0,7,2,23" ... an empty string is treated like "all".
+extern	cvar_t	*cl_voipUseVAD;
+extern	cvar_t	*cl_voipVADThreshold;
+extern	cvar_t	*cl_voipSend;
+extern	cvar_t	*cl_voipSendTarget;
+extern	cvar_t	*cl_voipGainDuringCapture;
+extern	cvar_t	*cl_voipCaptureMult;
+extern	cvar_t	*cl_voipShowMeter;
+extern	cvar_t	*cl_voip;
+#endif
+
 //bani
 extern qboolean sv_cheats;
 
@@ -538,6 +592,9 @@ typedef enum {
 	NUM_BUTTONS
 } kbuttons_t;
 
+#ifdef USE_VOIP
+extern 	kbutton_t 	in_voiprecord;
+#endif
 
 void CL_ClearKeys( void );
 
@@ -565,6 +622,11 @@ char *Key_KeynumToString( int keynum );
 // cl_parse.c
 //
 extern int cl_connectedToPureServer;
+
+#ifdef USE_VOIP
+extern int cl_connectedToVoipServer;
+void CL_Voip_f( void );
+#endif
 
 void CL_SystemInfoChanged( void );
 void CL_ParseServerMessage( msg_t *msg );
