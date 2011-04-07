@@ -49,6 +49,9 @@ option(BUILD_MOD_PK3
 option(USE_CURL
 	"Enable auto-download support using Curl (client only)" ON)
 
+option(USE_CODEC_VORBIS
+	"Enabled vorbis OGG support (client only)" OFF)
+
 if(NOT BUILD_SERVER AND NOT BUILD_CLIENT)
 	message(FATAL_ERROR
 		"Nothing to build")
@@ -130,6 +133,12 @@ if(BUILD_CLIENT)
 		add_definitions(-DUSE_OPENAL)
 		find_package(OpenAL REQUIRED)
 	endif()
+
+	if(USE_CODEC_VORBIS)
+		add_definitions(-DUSE_CODEC_VORBIS)
+
+		find_package(OggVorbis REQUIRED Ogg Vorbis Vorbisfile)
+	endif()
 endif()
 
 if(BUILD_SERVER)
@@ -163,6 +172,9 @@ if(BUILD_CLIENT)
 		${JPEG_LIBRARIES}
 		${OPENAL_LIBRARY}
 		${CURL_LIBRARIES}
+		${OGG_LIBRARY}
+		${VORBIS_LIBRARY}
+		${VORBISFILE_LIBRARY}
 		${OS_LIBRARIES}
 		${GLFW_LIBRARIES})
 endif()
