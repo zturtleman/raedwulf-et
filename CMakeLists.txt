@@ -4,8 +4,36 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 set(CMAKE_BUILD_TYPE Release CACHE STRING
 	"Build configuration (Debug, Release, RelWithDebInfo, MinSizeRel)")
 
-project(iowolfet C ASM)
+# define project and project version
+project(wolfet2 C ASM)
 
+set(wolfet2_VERSION_MAJOR  "2")
+set(wolfet2_VERSION_MINOR  "60")
+set(wolfet2_VERSION_PATCH  "e")
+
+set(wolfet2_VERSION       "${wolfet2_VERSION_MAJOR}.${wolfet2_VERSION_MINOR}")
+set(wolfet2_VERSION_FULL  "${wolfet2_VERSION}${wolfet2_VERSION_PATCH}")
+
+# differentiate between windows/linux/apple for installation directories
+message(STATUS "WIN32: A${WIN32}A")
+message(STATUS "APPLE: A${APPLE}A")
+message(STATUS "MINGW: A${MINGW}A")
+
+if (WIN32 OR APPLE)
+	if(WIN32) # windows (also counts for MINGW)
+		SET(wolfet2_INSTALL_NAME  "")
+		SET(wolfet2_SHARE_NAME    "./")
+	else(WIN32) # apple
+		SET(wolfet2_INSTALL_NAME  "Contents/Resources/")
+		SET(wolfet2_SHARE_NAME    "wolfet2.app/")
+	endif(WIN32)
+else (WIN32 OR APPLE) # linux
+	# TODO: this is correct for the tarball, but not for rpm/dev
+	SET(wolfet2_INSTALL_NAME  "")
+	SET(wolfet2_SHARE_NAME    "./")
+endif (WIN32 OR APPLE)
+
+# define general compiler configuration
 set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG")
 set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
 set(CMAKE_ASM_COMPILE_OBJECT ${CMAKE_C_COMPILE_OBJECT})
@@ -105,7 +133,7 @@ file(GLOB_RECURSE UI_SRC
 
 # Load packages, set definitions
 find_package(ZLIB REQUIRED)
-add_definitions(-DPRODUCT_VERSION="2.60e" -DBOTLIB)
+add_definitions(-DPRODUCT_VERSION="${wolfet2_VERSION_FULL}" -DBOTLIB)
 
 if(WIN32)
 	add_definitions(-DWINVER=0x501)
@@ -138,6 +166,11 @@ if(BUILD_CLIENT)
 	find_package(SDL REQUIRED)
 	find_package(OpenGL REQUIRED)
 	find_package(JPEG REQUIRED)
+
+	# ilm: only windows requires this
+	if(WIN32)
+		add_definitions(-DGLEW_STATIC)
+	endif()
 
 	if(USE_OPENAL_DLOPEN)
 		add_definitions(-DUSE_OPENAL -DUSE_OPENAL_DLOPEN)
@@ -174,12 +207,15 @@ if(BUILD_SERVER)
 		${OS_LIBRARIES})
 	set_target_properties(etded.${ARCH}
 		PROPERTIES COMPILE_DEFINITIONS "DEDICATED")
+
+	install(TARGETS etded.${ARCH}
+	  DESTINATION ${wolfet2_SHARE_NAME}${wolfet2_INSTALL_NAME}
+	)
 endif()
 
 if(BUILD_CLIENT)
-	add_executable(et.${ARCH} ${OS_SRC} ${BASE_SRC} ${SHARED_SRC} ${GLEW_SRC} ${GLFW_SRC} ${CLIENT_SRC})
+	add_executable(et.${ARCH} ${OS_SRC} ${BASE_SRC} ${SHARED_SRC} ${GLFW_SRC} ${GLEW_SRC} ${CLIENT_SRC})
 	include_directories(
-		${GLEW_INCLUDE_DIR}
 		${ZLIB_INCLUDE_DIRS}
 		${OPENGL_INCLUDE_DIR}
 		${JPEG_INCLUDE_DIR}
@@ -187,6 +223,7 @@ if(BUILD_CLIENT)
 		${CURL_INCLUDE_DIRS}
 		${Speex_INCLUDE_DIR}
 		${SPEEXDSP_INCLUDE_DIR}
+		${GLEW_INCLUDE_DIR}
 		${GLFW_INCLUDE_DIRS})
 	target_link_libraries(et.${ARCH}
 		${ZLIB_LIBRARIES}
@@ -202,6 +239,11 @@ if(BUILD_CLIENT)
 		${VORBISFILE_LIBRARY}
 		${OS_LIBRARIES}
 		${GLFW_LIBRARIES})
+
+	install(TARGETS et.${ARCH}
+	  DESTINATION ${wolfet2_SHARE_NAME}${wolfet2_INSTALL_NAME}
+
+	)
 endif()
 
 if(BUILD_MOD)
@@ -221,6 +263,10 @@ if(BUILD_MOD)
 		           PREFIX ""
 		           LIBRARY_OUTPUT_DIRECTORY "etmain")
 
+	install(TARGETS qagame.mp.${ARCH} cgame.mp.${ARCH} ui.mp.${ARCH}
+	  DESTINATION ${wolfet2_SHARE_NAME}${wolfet2_INSTALL_NAME}etmain
+	)
+
 	if(BUILD_MOD_PK3)
 		add_custom_target(mod_pk3 ALL DEPENDS etmain/mp_bin.pk3)
 		add_custom_command(
@@ -229,13 +275,84 @@ if(BUILD_MOD)
 			DEPENDS cgame.mp.${ARCH} ui.mp.${ARCH}
 			WORKING_DIRECTORY etmain/
 		)
+
+		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/etmain/mp_bin.pk3
+			DESTINATION ${wolfet2_SHARE_NAME}${wolfet2_INSTALL_NAME}/etmain)
 	endif()
+
+	
 endif()
 
-#set_source_files_properties(
-#	src/asm/snd_mixa.s
-#	src/asm/ftola.s
-#	src/asm/matha.s
-#	src/asm/snapvectora.s
-#	PROPERTIES
-#	COMPILE_FLAGS "-x assembler-with-cpp")
+##
+# create package target
+#
+# Support for:
+# linux: rpm, deb and tbz2
+# windows: nsis installer (win32 or mingw)
+# apple: TODO (cross-compiling is too hard for apple)
+##
+
+include (InstallRequiredSystemLibraries)
+
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Wolfenstein: Enemy Territory")
+set(CPACK_PACKAGE_VENDOR "TODO")
+set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_SOURCE_DIR}/README.txt")
+set(CPACK_RESOURCE_FILE_LICENSE    "${CMAKE_SOURCE_DIR}/COPYING.txt")
+
+set(CPACK_PACKAGE_VERSION_MAJOR "${wolfet2_VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${wolfet2_VERSION_MINOR}")
+set(CPACK_PACKAGE_VERSION_PATCH "${wolfet2_VERSION_PATCH}")
+
+set(CPACK_SOURCE_PACKAGE_FILE_NAME "wolfet2")
+set(CPACK_PACKAGE_FILE_NAME     "${CPACK_SOURCE_PACKAGE_FILE_NAME}-${wolfet2_VERSION_FULL}")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "wolfet2 ${wolfet2_VERSION_MAJOR}.${wolfet2_VERSION_MINOR}")
+set(CPACK_PACKAGE_EXECUTABLES   "et.${ARCH}" "packaging/wolfet.ico" "etded.${ARCH}" "packaging/wolfet.ico")
+set(CPACK_PACKAGE_CONTACT       "TODO:email")
+
+## package specifics
+# windows: nsis installer
+if(WIN32)
+	set(CPACK_NSIS_COMPRESSOR "/FINAL /SOLID lzma")
+	set(CPACK_PACKAGE_INSTALL_DIRECTORY "wolfet2")
+	# There is a bug in NSI that does not handle full unix paths properly. Make
+	# sure there is at least one set of four (4) backlasshes.
+	set(CPACK_PACKAGE_ICON "${PROJECT_SOURCE_DIR}/packaging\\\\wolfet.ico")
+
+	set(CPACK_NSIS_MUI_ICON "${PROJECT_SOURCE_DIR}/packaging\\\\wolfet.ico")
+	set(CPACK_NSIS_MUI_UNIICON "${PROJECT_SOURCE_DIR}/packaging\\\\wolfet.ico")
+	set(CPACK_NSIS_INSTALLED_ICON_NAME "et.${ARCH},0")
+	set(CPACK_NSIS_DISPLAY_NAME "Wolfenstein: Enemy Territory ${wolfet2_VERSION_MAJOR}.${wolfet2_VERSION_MINOR}.${wolfet2_VERSION_PATCH}")
+	set(CPACK_NSIS_HELP_LINK "TODO: website")
+	set(CPACK_NSIS_URL_INFO_ABOUT "TODO: website")
+	set(CPACK_NSIS_CONTACT "TODO: email")
+	set(CPACK_NSIS_MODIFY_PATH OFF)
+	set(CPACK_STRIP_FILES "et.${ARCH}.exe" "etded.${ARCH}")
+
+	set(CPACK_GENERATOR "NSIS")
+else(WIN32)
+	set(CPACK_PACKAGE_ICON "${PROJECT_SOURCE_DIR}/packaging/wolfet.ico")
+	set(CPACK_STRIP_FILES "et.${ARCH}" "etded.${ARCH}")
+	set(CPACK_SOURCE_STRIP_FILES "")
+
+	# linux: rpm, deb and tbz2
+	if (NOT APPLE)
+		set(CPACK_GENERATOR "RPM;DEB;TBZ2")
+		set(CPACK_TBZ2 "on")
+		set(CPACK_DEB "on")
+		set(CPACK_RPM "on")
+
+		# debian (unset values are set to default)
+		set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "${ARCH}")
+		set(CPACK_DEBIAN_PACKAGE_SECTION      "games")
+		set(CPACK_DEBIAN_PACKAGE_PRIORITY     "optional")
+		set(CPACK_DEBIAN_PACKAGE_RECOMMENDS   "")
+		set(CPACK_DEBIAN_PACKAGE_SUGGESTS     "")
+		set(CPACK_DEBIAN_PACKAGE_DEPENDS "libcurl, libsdl, libjpeg8, libspeex, libspeexdsp")
+
+		# rpm (unset values are set to default)
+		set(CPACK_RPM_PACKAGE_RELEASE "1")
+		set(CPACK_RPM_PACKAGE_REQUIRES "libcurl, libsdl, libjpeg8, libspeex, libspeexdsp")
+	endif (NOT APPLE)
+endif(WIN32)
+
+include (CPack)

@@ -167,10 +167,6 @@ typedef int intptr_t;
 #define _attribute( x )
 #endif
 
-// for windows fastcall option
-
-#define QDECL
-
 //bani
 //======================= GNUC DEFINES ==================================
 #if (defined _MSC_VER)
