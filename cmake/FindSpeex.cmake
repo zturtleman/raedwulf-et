@@ -30,50 +30,50 @@
 
 # Finds Speex library
 #
-#  Speex_INCLUDE_DIR - where to find speex.h, etc.
-#  Speex_LIBRARIES   - List of libraries when using Speex.
-#  Speex_FOUND       - True if Speex found.
+#  SPEEX_INCLUDE_DIR - where to find speex.h, etc.
+#  SPEEX_LIBRARIES   - List of libraries when using Speex.
+#  SPEEX_FOUND       - True if Speex found.
 #
 
-if (Speex_INCLUDE_DIR)
+if (SPEEX_INCLUDE_DIR)
   # Already in cache, be silent
-  set(Speex_FIND_QUIETLY TRUE)
-endif (Speex_INCLUDE_DIR)
+  set(SPEEX_FIND_QUIETLY TRUE)
+endif (SPEEX_INCLUDE_DIR)
 
-find_path(Speex_INCLUDE_DIR speex/speex.h
+find_path(SPEEX_INCLUDE_DIR speex/speex.h
   /opt/local/include
   /usr/local/include
   /usr/include
 )
 
-set(Speex_NAMES speex)
-find_library(Speex_LIBRARY
-  NAMES ${Speex_NAMES}
+set(SPEEX_NAMES speex)
+find_library(SPEEX_LIBRARY
+  NAMES ${SPEEX_NAMES}
   PATHS /usr/lib /usr/local/lib /opt/local/lib
 )
 
-if (Speex_INCLUDE_DIR AND Speex_LIBRARY)
-   set(Speex_FOUND TRUE)
-   set( Speex_LIBRARIES ${Speex_LIBRARY} )
-else (Speex_INCLUDE_DIR AND Speex_LIBRARY)
-   set(Speex_FOUND FALSE)
-   set(Speex_LIBRARIES)
-endif (Speex_INCLUDE_DIR AND Speex_LIBRARY)
+if (SPEEX_INCLUDE_DIR AND SPEEX_LIBRARY)
+   set(SPEEX_FOUND TRUE)
+   set( SPEEX_LIBRARIES ${SPEEX_LIBRARY} )
+else (SPEEX_INCLUDE_DIR AND SPEEX_LIBRARY)
+   set(SPEEX_FOUND FALSE)
+   set(SPEEX_LIBRARIES)
+endif (SPEEX_INCLUDE_DIR AND SPEEX_LIBRARY)
 
-if (Speex_FOUND)
-   if (NOT Speex_FIND_QUIETLY)
-      message(STATUS "Found Speex: ${Speex_LIBRARY}")
-   endif (NOT Speex_FIND_QUIETLY)
-else (Speex_FOUND)
-   if (Speex_FIND_REQUIRED)
-      message(STATUS "Looked for Speex libraries named ${Speex_NAMES}.")
-      message(STATUS "Include file detected: [${Speex_INCLUDE_DIR}].")
-      message(STATUS "Lib file detected: [${Speex_LIBRARY}].")
+if (SPEEX_FOUND)
+   if (NOT SPEEX_FIND_QUIETLY)
+      message(STATUS "Found Speex: ${SPEEX_LIBRARY}")
+   endif (NOT SPEEX_FIND_QUIETLY)
+else (SPEEX_FOUND)
+   if (SPEEX_FIND_REQUIRED)
+      message(STATUS "Looked for Speex libraries named ${SPEEX_NAMES}.")
+      message(STATUS "Include file detected: [${SPEEX_INCLUDE_DIR}].")
+      message(STATUS "Lib file detected: [${SPEEX_LIBRARY}].")
       message(FATAL_ERROR "=========> Could NOT find Speex library")
-   endif (Speex_FIND_REQUIRED)
-endif (Speex_FOUND)
+   endif (SPEEX_FIND_REQUIRED)
+endif (SPEEX_FOUND)
 
 mark_as_advanced(
-  Speex_LIBRARY
-  Speex_INCLUDE_DIR
+  SPEEX_LIBRARY
+  SPEEX_INCLUDE_DIR
   )
