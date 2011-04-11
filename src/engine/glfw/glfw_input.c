@@ -384,7 +384,7 @@ static void IN_ActivateMouse(void)
 
 	if(!mouseActive)
 	{
-		glfwEnable(glfwWindow, GLFW_MOUSE_CURSOR);
+		glfwDisable(glfwWindow, GLFW_MOUSE_CURSOR);
 	}
 
 	// in_nograb makes no sense in fullscreen mode
