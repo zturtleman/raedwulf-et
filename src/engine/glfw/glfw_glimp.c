@@ -70,6 +70,15 @@ void GLimp_LogComment(char *comment)
 }
 
 /**
+ * glfwWindow has been closed
+ */
+static int glfwWindowClosed(GLFWwindow window)
+{
+	Cbuf_ExecuteText(EXEC_NOW, "quit Closed window\n");
+	return GL_TRUE; // close window
+}
+
+/**
  * GLimp_DetectAvailableModes
  */
 static void GLimp_DetectAvailableModes(void)
@@ -430,9 +439,6 @@ void GLimp_Init(void)
 	// This values force the UI to disable driver selection
 	glConfig.driverType = GLDRV_ICD;
 	glConfig.hardwareType = GLHW_GENERIC;
-	glConfig.deviceSupportsGamma = qfalse;
-	// glConfig.deviceSupportsGamma = !!(SDL_SetGamma(1.0f, 1.0f, 1.0f) >= 0);
-	// TODO: modify GLFW to support gamma
 	glConfig.deviceSupportsGamma = qtrue;
 
 	// get our config strings
@@ -445,11 +451,14 @@ void GLimp_Init(void)
 
 	// initialize extensions
 	GLimp_InitExtensions();
+	
+	// set callback functions
+	glfwSetWindowCloseCallback( glfwWindowClosed );
 
 	// Create available modes cvar
 	ri.Cvar_Get("r_availableModes", "", CVAR_ROM);
 
-	// This depends on SDL_INIT_VIDEO, hence having it here
+	// This depends on glfwWindow being setup, hence having it here
 	IN_Init();
 }
 
@@ -475,6 +484,7 @@ void GLimp_EndFrame(void)
 				GLFW_FULLSCREEN :
 				GLFW_WINDOW);
 		*/
+		
 		glfwCloseWindow(glfwWindow);
 		GLimp_Init();
 		CL_Vid_Restart_f();
