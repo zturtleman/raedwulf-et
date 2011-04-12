@@ -125,7 +125,6 @@ static int GLimp_SetMode(int mode, qboolean fullscreen)
 	const char* glstring;
 	int rbits, gbits, bbits, abits, cbits, dbits, sbits;
 	int width, height;
-	int once;
 	static GLFWvidmode dvidmode;
 	static int have_dvidmode;
 
@@ -144,8 +143,6 @@ static int GLimp_SetMode(int mode, qboolean fullscreen)
 		return RSERR_INVALID_MODE;
 	}
     
-	//width = r_width->integer ? r_width->integer : dvidmode.Width;
-	//height = r_height->integer ? r_height->integer : dvidmode.Height;
 	cbits = r_colorbits->integer ? r_colorbits->integer :
 		dvidmode.redBits + dvidmode.blueBits + dvidmode.greenBits;
 	ri.Printf(PRINT_DEVELOPER, "Attempting window size: %dx%d %d\n", 
@@ -159,7 +156,7 @@ static int GLimp_SetMode(int mode, qboolean fullscreen)
 	dbits = r_depthbits->integer;
 	sbits = r_stencilbits->integer;
 	
-    // Do the bit calculation
+	// Do the bit calculation
 	if (cbits < 1 || cbits < 32 || !(cbits % 8))
 		cbits = 32;
 	if (dbits < 1 || dbits < 24 || !(dbits % 8))
@@ -185,52 +182,26 @@ static int GLimp_SetMode(int mode, qboolean fullscreen)
 			break;
 	}
 
-	// TODO: glfw already fallsback, do we need a fallback at all!
-	once = 0;
-	do
-	{
-		glfwOpenWindowHint(GLFW_ACCUM_RED_BITS, rbits);
-		glfwOpenWindowHint(GLFW_ACCUM_GREEN_BITS, gbits);
-		glfwOpenWindowHint(GLFW_ACCUM_BLUE_BITS, bbits);
-		glfwOpenWindowHint(GLFW_ACCUM_ALPHA_BITS, abits);
-		glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, GL_TRUE);
-	
-		ri.Printf(PRINT_DEVELOPER, "Using %d/%d/%d color, "
-			"%d depth, %d stencil bits\n",
-			rbits, gbits, bbits, dbits, sbits);
+	glfwOpenWindowHint(GLFW_ACCUM_RED_BITS, rbits);
+	glfwOpenWindowHint(GLFW_ACCUM_GREEN_BITS, gbits);
+	glfwOpenWindowHint(GLFW_ACCUM_BLUE_BITS, bbits);
+	glfwOpenWindowHint(GLFW_ACCUM_ALPHA_BITS, abits);
+	glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, GL_TRUE);
 
-		glfwWindow = glfwOpenWindow(width, height,
-			fullscreen ? GLFW_FULLSCREEN : GLFW_WINDOWED,
-			CLIENT_WINDOW_TITLE, NULL);
-		
-		if (glfwWindow)
-		{
-			glfwSwapInterval(r_swapInterval->integer);
-			glfwDisable(glfwWindow, GLFW_MOUSE_CURSOR);
-		}
-		else
-		{
-			if (once)
-				break;
-		
-			/* fallback onto desktop resolution */
-			width = dvidmode.width;
-			height = dvidmode.height;
-			rbits = dvidmode.redBits;
-			gbits = dvidmode.greenBits;
-			bbits = dvidmode.blueBits;
-			abits = 0;
-			sbits = 8;
-			dbits = 8;
-			cbits = rbits + gbits + bbits + abits;
-			once = 1;
-		}
-	}
-	while (!glfwWindow);
-			
-	/* set the cvars to the actual values */
+	ri.Printf(PRINT_DEVELOPER, "Using %d/%d/%d color, "
+		"%d depth, %d stencil bits\n",
+		rbits, gbits, bbits, dbits, sbits);
+
+	glfwWindow = glfwOpenWindow(width, height,
+		fullscreen ? GLFW_FULLSCREEN : GLFW_WINDOWED,
+		CLIENT_WINDOW_TITLE, NULL);
+	
 	if (glfwWindow)
 	{
+		glfwSwapInterval(r_swapInterval->integer);
+		glfwDisable(glfwWindow, GLFW_MOUSE_CURSOR);
+		
+		/* set the cvars to the actual values */
 		rbits = glfwGetWindowParam(glfwWindow, GLFW_RED_BITS);
 		gbits = glfwGetWindowParam(glfwWindow, GLFW_GREEN_BITS);
 		bbits = glfwGetWindowParam(glfwWindow, GLFW_BLUE_BITS);
@@ -247,21 +218,20 @@ static int GLimp_SetMode(int mode, qboolean fullscreen)
 		Cvar_SetValue("r_colorbits", cbits);
 		Cvar_SetValue("r_depthbits", dbits);
 		Cvar_SetValue("r_stencilbits", sbits);
-	}
-	
-	displayAspect = (float)width / (float)height;
-	ri.Printf(PRINT_DEVELOPER, "Actual display aspect: %.3f\n", displayAspect);
 		
-	glConfig.displayFrequency = glfwGetWindowParam(glfwWindow, GLFW_REFRESH_RATE);
-	glConfig.vidHeight = height;
-	glConfig.vidWidth = width;
-	glConfig.colorBits = cbits;
-	glConfig.depthBits = dbits;
-	glConfig.stencilBits = sbits;
+		displayAspect = (float)width / (float)height;
+		ri.Printf(PRINT_DEVELOPER, "Actual display aspect: %.3f\n", displayAspect);
+			
+		glConfig.displayFrequency = glfwGetWindowParam(glfwWindow, GLFW_REFRESH_RATE);
+		glConfig.vidHeight = height;
+		glConfig.vidWidth = width;
+		glConfig.colorBits = cbits;
+		glConfig.depthBits = dbits;
+		glConfig.stencilBits = sbits;
 
-	GLimp_DetectAvailableModes();
-
-	if (!glfwWindow)
+		GLimp_DetectAvailableModes();
+	}
+	else
 	{
 		ri.Printf(PRINT_ALL, "Couldn't get a visual\n");
 		return RSERR_INVALID_MODE;
