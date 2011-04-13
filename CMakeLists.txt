@@ -15,10 +15,6 @@ set(wolfet2_VERSION       "${wolfet2_VERSION_MAJOR}.${wolfet2_VERSION_MINOR}")
 set(wolfet2_VERSION_FULL  "${wolfet2_VERSION}${wolfet2_VERSION_PATCH}")
 
 # differentiate between windows/linux/apple for installation directories
-message(STATUS "WIN32: A${WIN32}A")
-message(STATUS "APPLE: A${APPLE}A")
-message(STATUS "MINGW: A${MINGW}A")
-
 if (WIN32 OR APPLE)
 	if(WIN32) # windows (also counts for MINGW)
 		SET(wolfet2_INSTALL_NAME  "")
@@ -73,6 +69,12 @@ option(BUILD_MOD
 
 option(BUILD_MOD_PK3
 	"Creates a mp_bin.pk3 file of the mod libraries" OFF)
+
+option(USE_OPENAL
+	"Use openal as the sound backend (client only)" ON)
+
+option(USE_OPENAL_DLOPEN
+	"Dynamically try to load openal at runtime (client only)" OFF)
 
 option(USE_CURL
 	"Enable auto-download support using Curl (client only)" ON)
