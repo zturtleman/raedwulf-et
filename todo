@@ -1,9 +1,8 @@
 ilm's todo
+- wolfet unexpectedly quits (crash?) when reloading? map
+last message on console "Bogus input colorspace"
 - fix installation path of rpm/deb vs tgz2 (cpack)
 - on-the-fly fullscreen switching: need glfwSetWindowMode for that
-- fix openal sound issues (sfx are sometimes dropped, too quiet and/or *screech*)
 - remove sdl input and gimp code from repo
 - add mumble rpc socket support
 - cleanup warnings of missing sounds when loading (if possible)
-- wolfet unexpectedly quits (crash?) when reloading? map
-last message on console "Bogus input color space"

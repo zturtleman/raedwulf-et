@@ -263,7 +263,6 @@ static qboolean GLimp_StartDriverAndSetMode(int mode, qboolean fullscreen)
 		glfwGetVersion(&major, &minor, &rev);
 		ri.Printf(PRINT_DEVELOPER, "GLFW version %d.%d.%d\n",
 			major, minor, rev);
-		// TODO: Get video driver name and put into r_glfwDriver
 	}
 	else
 	{
@@ -290,6 +289,14 @@ static qboolean GLimp_StartDriverAndSetMode(int mode, qboolean fullscreen)
 			break;
 	}
 
+	// ilm: use glGetString to get driver info but,
+	// TODO: do we need to have this cvar ? sdl_glimp.c had it but the glGetString info is already printed without this
+	/*
+	char* driverName;		
+	driverName = (char *) glGetString(GL_RENDERER);
+	ri.Printf( PRINT_ALL, "glfw using driver \"%s\"\n", driverName );
+	Cvar_Set( "r_glfwDriver", driverName );
+	*/
 	return qtrue;
 }
 
@@ -395,8 +402,6 @@ static void GLimp_InitExtensions(void)
 void GLimp_Init(void)
 {
 	r_allowSoftwareGL = ri.Cvar_Get("r_allowSoftwareGL", "0", CVAR_LATCH);
-	// TODO: glfw driver...?
-	//r_glfwDriver = ri.Cvar_Get("r_glfwDriver", "", CVAR_ROM);
 
 	Sys_GLimpInit();
 
