@@ -24,9 +24,9 @@ if (WIN32 OR APPLE)
 		SET(wolfet2_SHARE_NAME    "wolfet2.app/")
 	endif(WIN32)
 else (WIN32 OR APPLE) # linux
-	# TODO: this is correct for the tarball, but not for rpm/dev
-	SET(wolfet2_INSTALL_NAME  "")
-	SET(wolfet2_SHARE_NAME    "./")
+	# TODO: this is correct for the rpm/deb but not for the tarball
+	SET(wolfet2_INSTALL_NAME  "wolfet2/")
+	SET(wolfet2_SHARE_NAME    "games/")
 endif (WIN32 OR APPLE)
 
 # define general compiler configuration
@@ -213,6 +213,12 @@ if(BUILD_SERVER)
 	install(TARGETS etded.${ARCH}
 	  DESTINATION ${wolfet2_SHARE_NAME}${wolfet2_INSTALL_NAME}
 	)
+	# install bash script in bin for unix
+	if(UNIX)
+		configure_file( packaging/etded.in ${CMAKE_BINARY_DIR}/etded )
+		install(PROGRAMS ${CMAKE_BINARY_DIR}/etded
+		  DESTINATION bin/)
+	endif()
 endif()
 
 if(BUILD_CLIENT)
@@ -244,8 +250,15 @@ if(BUILD_CLIENT)
 
 	install(TARGETS et.${ARCH}
 	  DESTINATION ${wolfet2_SHARE_NAME}${wolfet2_INSTALL_NAME}
-
 	)
+
+	# install bash script in bin for unix
+	if(UNIX)
+		configure_file( packaging/et.in ${CMAKE_BINARY_DIR}/et )
+		install(PROGRAMS ${CMAKE_BINARY_DIR}/et
+		  DESTINATION bin/)
+	endif()
+
 endif()
 
 if(BUILD_MOD)
@@ -296,7 +309,7 @@ endif()
 
 include (InstallRequiredSystemLibraries)
 
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Wolfenstein: Enemy Territory")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Wolfenstein: Enemy Territory 2")
 set(CPACK_PACKAGE_VENDOR "TODO")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_SOURCE_DIR}/README.txt")
 set(CPACK_RESOURCE_FILE_LICENSE    "${CMAKE_SOURCE_DIR}/COPYING.txt")
