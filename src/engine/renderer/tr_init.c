@@ -487,19 +487,20 @@ R_TakeScreenshotJPEG
 ==============
 */
 void R_TakeScreenshotJPEG( int x, int y, int width, int height, char *fileName ) {
+  
 	byte        *buffer;
 
-	buffer = ri.Hunk_AllocateTempMemory( glConfig.vidWidth * glConfig.vidHeight * 4 );
+	buffer = ri.Hunk_AllocateTempMemory( glConfig.vidWidth * glConfig.vidHeight * 3 );
 
-	glReadPixels( x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, buffer );
+	glReadPixels( x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, buffer );
 
 	// gamma correct
 	if ( ( tr.overbrightBits > 0 ) && glConfig.deviceSupportsGamma ) {
-		R_GammaCorrect( buffer, glConfig.vidWidth * glConfig.vidHeight * 4 );
+		R_GammaCorrect( buffer, glConfig.vidWidth * glConfig.vidHeight * 3 );
 	}
 
 	ri.FS_WriteFile( fileName, buffer, 1 );     // create path
-	SaveJPG( fileName, 95, glConfig.vidWidth, glConfig.vidHeight, buffer );
+	RE_SaveJPG( fileName, 95, glConfig.vidWidth, glConfig.vidHeight, buffer );
 
 	ri.Hunk_FreeTempMemory( buffer );
 }
