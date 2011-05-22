@@ -1,8 +1,7 @@
 ilm's todo
-- wolfet unexpectedly quits (crash?) when reloading? map
-last message on console "Bogus input colorspace"
 - fix installation path of rpm/deb vs tgz2 (cpack)
 - on-the-fly fullscreen switching: need glfwSetWindowMode for that
 - remove sdl input and gimp code from repo
 - add mumble rpc socket support
 - cleanup warnings of missing sounds when loading (if possible)
+- mouse jerkiness after ~10 min of play (possible openal related?)
