@@ -1218,57 +1218,6 @@ static qboolean AnimParseAnimConfig( playerInfo_t *animModelInfo, const char *fi
 	}
 
 	return qtrue;           // NERVE - SMF - blah
-
-	// check for head anims
-	token = COM_Parse( &text_p );
-	if ( token && token[0] ) {
-		if ( animModelInfo->version < 2 || !Q_stricmp( token, "HEADFRAMES" ) ) {
-
-			// read information for each head frame
-			for ( i = 0 ; i < MAX_HEAD_ANIMS ; i++ ) {
-
-				token = COM_Parse( &text_p );
-				if ( !token || !token[0] ) {
-					break;
-				}
-
-				if ( animModelInfo->version > 1 ) {   // includes animation names at start of each line
-					// just throw this information away, not required for head
-					token = COM_ParseExt( &text_p, qfalse );
-					if ( !token || !token[0] ) {
-						break;
-					}
-				}
-
-				if ( !i ) {
-					skip = atoi( token );
-				}
-
-				headAnims[i].firstFrame = atoi( token );
-				// modify according to last frame of the main animations, since the head is totally seperate
-				headAnims[i].firstFrame -= animations[MAX_ANIMATIONS - 1].firstFrame + animations[MAX_ANIMATIONS - 1].numFrames + skip;
-
-				token = COM_ParseExt( &text_p, qfalse );
-				if ( !token || !token[0] ) {
-					break;
-				}
-				headAnims[i].numFrames = atoi( token );
-
-				// skip the movespeed
-				token = COM_ParseExt( &text_p, qfalse );
-			}
-
-//			animModelInfo->numHeadAnims = i;
-
-			if ( i != MAX_HEAD_ANIMS ) {
-//				BG_AnimParseError( "Incorrect number of head frames" );
-				return qfalse;
-			}
-
-		}
-	}
-
-	return qtrue;
 }
 
 /*
