@@ -1588,7 +1588,7 @@ void CL_CharEvent( int key ) {
 	// fretn - this should be fixed in Com_EventLoop
 	// but I can't be arsed to leave this as is
 
-	if ( key == (unsigned char) '`' || key == (unsigned char) '~' || key == (unsigned char) '¬' ) {
+	if ( key == (unsigned char) '`' || key == (unsigned char) '~' || key == (unsigned char) '\xAC' ) {
 		return;
 	}
 
